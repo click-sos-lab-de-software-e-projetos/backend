@@ -57,10 +57,6 @@ Quando a URL segura for fornecida, defina `NEON_ENV_URL` e execute:
 
 O script baixa o arquivo para `.env`; não inclua essa URL nem segredos no Git.
 
-## Plano
-
-O plano incremental de scaffold está em [`../PLAN.md`](../PLAN.md). As próximas funcionalidades devem ser implementadas somente após concluir e revisar esse plano.
-
 ## Verificação do scaffold
 
 Execute estas verificações antes de iniciar a fase funcional:
