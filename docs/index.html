@@ -118,10 +118,9 @@
           <article class="task">
             <div class="task-meta"><span>CONTRATO HTTP</span><span>SOS-01</span></div>
             <h4>Definir schemas e rota de criação</h4>
-            <p>Criar schemas Pydantic e OpenAPI para <code>POST /api/v1/sos/alertas</code> com latitude, longitude e mensagem opcional. Obter o usuário exclusivamente do Bearer Token.</p>
+            <p>Criar schemas Pydantic e OpenAPI para <code>POST /api/v1/sos/alertas</code> com latitude, longitude e mensagem opcional de até 255 caracteres. Obter o usuário exclusivamente do Bearer Token.</p>
             <p><strong>Banco:</strong> não cria, lê ou atualiza tabelas nesta tarefa; somente define o contrato que será persistido em <code>alertas_sos</code>.</p>
-            <p class="done"><b>Pronto quando:</b> OpenAPI documentar corpos, respostas 201/401/422 e todos os schemas tiverem testes de validação.</p>
-            <div class="yume-decision"><strong>Decisão pendente da Yume</strong><p>Definir o texto padrão da mensagem e o tamanho máximo da mensagem livre.</p></div>
+            <p class="done"><b>Pronto quando:</b> OpenAPI documentar corpos, respostas 201/401/422 e os testes aceitarem 255 caracteres e rejeitarem 256.</p>
           </article>
 
           <article class="task">
@@ -144,9 +143,9 @@
           <article class="task">
             <div class="task-meta"><span>MENSAGEM</span><span>SOS-04</span></div>
             <h4>Montar payload de emergência</h4>
-            <p>Criar função pura que recebe alerta e contato, monta a mensagem, inclui coordenadas e gera link Google Maps no formato <code>https://www.google.com/maps?q=lat,lng</code>.</p>
-            <p><strong>Banco:</strong> não altera tabelas; recebe os dados já carregados de <code>alertas_sos</code> e <code>contatos_emergencia</code>.</p>
-            <p class="done"><b>Pronto quando:</b> testes verificarem coordenadas, link e fallback para mensagem padrão sem chamar a Evolution API.</p>
+            <p>Criar função pura que gera o título <code>{nome_usuario} acionou o botão do Click S.O.S. nas coordenadas: {link_google_maps}</code>, inclui coordenadas e usa a mensagem padrão quando o texto livre estiver vazio.</p>
+            <p><strong>Banco:</strong> não altera tabelas; recebe os dados já carregados de <code>alertas_sos</code>, <code>usuarios</code> e <code>contatos_emergencia</code>.</p>
+            <p class="done"><b>Pronto quando:</b> testes verificarem título, coordenadas, link e fallback para a mensagem padrão sem chamar a Evolution API.</p>
           </article>
 
           <article class="task">

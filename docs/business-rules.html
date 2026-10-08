@@ -36,8 +36,10 @@
             <span class="answer-id">REGRA 02 · S.O.S</span>
             <h3>O que a mensagem envia?</h3>
             <p><strong>Decisão:</strong> a mensagem envia coordenadas GPS, um link do Google Maps e uma mensagem escrita pela pessoa usuária informando que está em perigo.</p>
-            <p><strong>Mensagem padrão:</strong> haverá um texto padrão, ainda a ser definido, para casos em que a pessoa não escreva uma mensagem.</p>
-            <p><strong>Impacto backend:</strong> validar latitude, longitude e tamanho do texto; persistir o ponto e a mensagem; gerar o link do Google Maps a partir das coordenadas antes do envio.</p>
+            <p><strong>Título da mensagem:</strong> <code>{nome_usuario} acionou o botão do Click S.O.S. nas coordenadas: {link_google_maps}</code>.</p>
+            <p><strong>Mensagem padrão:</strong> “Olá, por favor, com urgência, verifique se está tudo bem comigo. Minha localização é a informada acima.”</p>
+            <p><strong>Limite:</strong> a mensagem livre aceita no máximo 255 caracteres.</p>
+            <p><strong>Impacto backend:</strong> validar latitude, longitude e mensagem livre de até 255 caracteres; persistir o ponto e a mensagem; gerar o link do Google Maps antes do envio.</p>
             <p class="mobile-note"><strong>Impacto mobile:</strong> solicitar a localização, coletar latitude e longitude e oferecer campo de mensagem livre com fallback para a mensagem padrão.</p>
           </article>
 
@@ -103,7 +105,7 @@
         </div>
         <div class="lead-grid">
           <article class="lead-task"><span>YUME-01 · DECIDIDO</span><h3>Organizar modo demonstração</h3><p>Comprar e configurar o chip de teste; registrar os números de WhatsApp de devs que consentiram em receber mensagens reais.</p></article>
-          <article class="lead-task"><span>YUME-02 · PENDENTE</span><h3>Definir a mensagem padrão</h3><p>Registrar o texto padrão do S.O.S, a mensagem livre da pessoa usuária e o formato final do link de Google Maps.</p></article>
+          <article class="lead-task"><span>YUME-02 · DECIDIDO</span><h3>Mensagem padrão e limite aprovados</h3><p>Usar o título com nome e link do Google Maps; usar a mensagem padrão aprovada quando o texto estiver vazio; limitar a mensagem livre a 255 caracteres.</p></article>
           <article class="lead-task"><span>YUME-03 · PENDENTE</span><h3>Definir retenção de localização</h3><p>A política de retentativas foi definida: 5 tentativas em intervalos de 5 segundos. Ainda falta definir retenção e exclusão de alertas/localização.</p></article>
           <article class="lead-task"><span>YUME-04 · PENDENTE</span><h3>Preparar Evolution API de teste</h3><p>Disponibilizar ambiente, credenciais seguras e regra de autorização para qualquer envio de WhatsApp real pelo chip do projeto.</p></article>
           <article class="lead-task"><span>YUME-05 · PENDENTE</span><h3>Preparar planilha de São Paulo</h3><p>Entregar e aprovar a planilha Excel para toda a cidade de São Paulo, com colunas, fonte, data e regra de raio por região.</p></article>
