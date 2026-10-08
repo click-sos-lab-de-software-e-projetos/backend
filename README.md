@@ -60,3 +60,15 @@ O script baixa o arquivo para `.env`; não inclua essa URL nem segredos no Git.
 ## Plano
 
 O plano incremental de scaffold está em [`../PLAN.md`](../PLAN.md). As próximas funcionalidades devem ser implementadas somente após concluir e revisar esse plano.
+
+## Verificação do scaffold
+
+Execute estas verificações antes de iniciar a fase funcional:
+
+```bash
+pytest
+pre-commit run --all-files
+docker build -t click-sos-backend .
+```
+
+No VS Code, abra o projeto com **Reopen in Container** e confirme que a porta `8000`, os testes e a rota `/health` estão disponíveis. O build Docker deve ser executado em uma máquina com Docker Desktop ou Docker Engine instalado.
