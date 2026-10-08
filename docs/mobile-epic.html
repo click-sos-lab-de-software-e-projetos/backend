@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Click S.O.S — Épicos do mobile</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <p class="eyebrow">CLICK S.O.S · MOBILE</p>
+      <h1>Épicos do<br />aplicativo Android.</h1>
+      <p class="intro">Duas entregas funcionais do MVP: o mapa de risco agregado e o fluxo S.O.S integrado ao backend. O aplicativo usa Kotlin, Jetpack Compose, Google Maps, localização e os contratos <code>/api/v1</code>.</p>
+      <nav class="document-links" aria-label="Documentações do projeto">
+        <a href="index.html">Lista de tarefas backend</a>
+        <a href="business-rules.html">Regras de negócio e perguntas em aberto</a>
+        <a href="https://www.figma.com/design/h734YniK76hrEmDHggdqls/Sem-t%C3%ADtulo?node-id=0-1&amp;t=mcGYlC1oaziyuPCX-1" target="_blank" rel="noreferrer">wire do figma</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="overview" aria-label="Visão geral dos épicos mobile">
+        <article>
+          <span class="number">03</span>
+          <h2>Épico: botão S.O.S</h2>
+          <p>Autenticar, obter localização com consentimento, criar alerta no backend e apresentar o resultado à pessoa usuária.</p>
+          <ul><li><strong>Responsável: —</strong></li><li>Saída técnica: sessão, contatos, localização, alerta e fallback WhatsApp.</li></ul>
+        </article>
+        <article>
+          <span class="number">04</span>
+          <h2>Épico: mapa de risco</h2>
+          <p>Exibir regiões agregadas pela API e permitir o envio seguro de feedback comunitário.</p>
+          <ul><li><strong>Responsável: —</strong></li><li>Saída técnica: Google Maps, regiões, filtros e feedback pendente.</li></ul>
+        </article>
+      </section>
+
+      <section class="epic sos" aria-labelledby="sos-mobile-title">
+        <div class="epic-heading">
+          <div><p class="eyebrow">ÉPICO 03 · MOBILE</p><h2 id="sos-mobile-title">Botão S.O.S</h2><p>Entregar o fluxo de emergência ponta a ponta: da sessão autenticada e localização consentida à criação do alerta, cujo envio WhatsApp é realizado pelo backend.</p></div>
+          <div class="success"><strong>Critério de pronto</strong><span>Uma pessoa autenticada consegue confirmar um alerta, o app envia as coordenadas ao backend e comunica os estados <code>PENDENTE</code>, <code>ENVIADO</code> ou <code>ERRO</code> sem expor dados sensíveis.</span></div>
+        </div>
+        <div class="lanes solo"><div class="lane">
+          <div class="lane-header"><span class="avatar a">—</span><h3>Responsável pelo épico S.O.S mobile</h3></div>
+
+          <article class="task">
+            <div class="task-meta"><span>SESSÃO E CONTRATO</span><span>SOSM-01</span></div>
+            <h4>Integrar autenticação e cliente HTTP</h4>
+            <p>Implementar o cliente Retrofit/OkHttp para os contratos aprovados de <code>/api/v1</code>, injetar o Bearer Token na sessão autenticada e modelar respostas de sucesso, autenticação e validação.</p>
+            <p><strong>Backend:</strong> consumir somente URLs por ambiente e contratos publicados; não registrar token, corpo de alerta ou coordenadas em logs.</p>
+            <p class="done"><b>Pronto quando:</b> testes com servidor fake validarem cabeçalho Bearer, erros 401/422 e remoção da sessão ao encerrar login.</p>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>CONTATOS</span><span>SOSM-02</span></div>
+            <h4>Gerir contatos de emergência no aplicativo</h4>
+            <p>Criar telas para listar, cadastrar, editar e remover contatos conforme o contrato backend. Limitar a três contatos ativos e informar que só entram no envio após consentimento confirmado.</p>
+            <p><strong>Backend:</strong> refletir os estados e validações retornados pelo recurso de contatos; não manter uma fonte de verdade local independente.</p>
+            <p class="done"><b>Pronto quando:</b> a interface bloquear o quarto contato ativo e explicar os estados de consentimento e erro da API.</p>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>LOCALIZAÇÃO</span><span>SOSM-03</span></div>
+            <h4>Solicitar consentimento e capturar posição</h4>
+            <p>Explicar por que a localização é necessária, solicitar a permissão somente no fluxo S.O.S e obter latitude e longitude pelo Fused Location Provider. Tratar permissão negada, serviço desativado e posição indisponível.</p>
+            <p><strong>Privacidade:</strong> não persistir histórico de localização no dispositivo e mostrar o aviso de privacidade aprovado antes do envio.</p>
+            <p class="done"><b>Pronto quando:</b> testes cobrirem os estados de permissão, erro e coordenadas simuladas sem usar a localização de teste como dado real.</p>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>ACIONAMENTO</span><span>SOSM-04</span></div>
+            <h4>Implementar confirmação e criação do alerta</h4>
+            <p>Construir o botão acessível, o diálogo de confirmação e o campo de mensagem livre de até 255 caracteres. Após a confirmação, enviar latitude, longitude e mensagem a <code>POST /api/v1/sos/alertas</code>.</p>
+            <p><strong>Backend:</strong> a resposta rápida representa a criação do alerta; o envio de WhatsApp acontece no worker backend, fora da interface.</p>
+            <p class="done"><b>Pronto quando:</b> o app impedir acionamento acidental, tratar 201/401/422 e confirmar que o alerta foi registrado.</p>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>STATUS E FALLBACK</span><span>SOSM-05</span></div>
+            <h4>Comunicar estado do alerta e oferecer fallback</h4>
+            <p>Apresentar estados de criação e despacho conforme contrato disponível. Quando a API estiver indisponível e a regra aprovada permitir, oferecer um link <code>wa.me</code> com confirmação explícita antes de abrir o WhatsApp.</p>
+            <p><strong>Segurança:</strong> o fallback não substitui silenciosamente o backend, não expõe destinatário indevido e não dispara mensagem sem ação da pessoa usuária.</p>
+            <p class="done"><b>Pronto quando:</b> testes cobrirem indisponibilidade, cancelamento, abertura do link e mensagens claras sobre o que foi ou não enviado.</p>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>ACESSIBILIDADE E INTEGRAÇÃO</span><span>SOSM-06</span></div>
+            <h4>Validar fluxo S.O.S ponta a ponta</h4>
+            <p>Revisar contraste, área de toque, leitores de tela, rota de retorno e mensagens de erro. Criar testes instrumentados com backend fake para sessão, localização, confirmação, criação do alerta e fallback.</p>
+            <p><strong>Observabilidade:</strong> registrar apenas eventos técnicos mínimos, sem token, telefone, texto livre ou coordenadas precisas.</p>
+            <p class="done"><b>Pronto quando:</b> o fluxo crítico puder ser demonstrado de ponta a ponta com dados de teste consentidos e sem vazamento de informações sensíveis.</p>
+          </article>
+        </div></div>
+      </section>
+
+      <section class="epic map" aria-labelledby="map-mobile-title">
+        <div class="epic-heading">
+          <div><p class="eyebrow">ÉPICO 04 · MOBILE</p><h2 id="map-mobile-title">Mapa de risco</h2><p>Exibir apenas dados agregados das regiões de São Paulo e permitir feedback comunitário sem revelar localização ou dados de outras pessoas.</p></div>
+          <div class="success"><strong>Critério de pronto</strong><span>O mapa apresenta regiões retornadas pela API com centroide, score, cor e raio; nunca geometria privada, alertas individuais ou localização de terceiros.</span></div>
+        </div>
+        <div class="lanes solo"><div class="lane">
+          <div class="lane-header"><span class="avatar b">—</span><h3>Responsável pelo épico do mapa mobile</h3></div>
+
+          <article class="task">
+            <div class="task-meta"><span>MAPS SDK</span><span>MAPM-01</span></div>
+            <h4>Configurar Google Maps de forma segura</h4>
+            <p>Adicionar o Maps Compose/SDK, carregar a chave somente da configuração local ou do ambiente permitido e documentar seu fornecimento sem versionar credenciais.</p>
+            <p><strong>Segurança:</strong> restringir a chave no provedor e nunca incluí-la em código, captura de tela, log ou repositório.</p>
+            <p class="done"><b>Pronto quando:</b> o mapa de teste abrir em ambiente autorizado e o build de CI não exigir segredo embutido.</p>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>REGIÕES AGREGADAS</span><span>MAPM-02</span></div>
+            <h4>Consultar e renderizar regiões do backend</h4>
+            <p>Consumir <code>GET /api/v1/mapa/regioes</code> e renderizar somente ID público, nome, centroide, score, cor e raio. Criar estados de carregamento, vazio e falha.</p>
+            <p><strong>Privacidade:</strong> o app não solicita nem desenha geometria completa, origem Excel, feedback pendente, alertas ou localização de outras pessoas.</p>
+            <p class="done"><b>Pronto quando:</b> testes de serialização rejeitarem campos bloqueados e o mapa desenhar corretamente dados fake agregados.</p>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>EXPLORAÇÃO</span><span>MAPM-03</span></div>
+            <h4>Adicionar filtros e interação do mapa</h4>
+            <p>Permitir consulta por área visível ou posição consentida, respeitando os limites de raio e paginação definidos pelo backend. Exibir detalhes da região sem inferir risco individual.</p>
+            <p><strong>Localização:</strong> a centralização na posição atual é opcional e só ocorre após consentimento; o mapa continua utilizável sem permissão.</p>
+            <p class="done"><b>Pronto quando:</b> filtros inválidos, ausência de permissão e respostas sem região forem tratados sem bloquear a navegação.</p>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>FEEDBACK COMUNITÁRIO</span><span>MAPM-04</span></div>
+            <h4>Enviar feedback vinculado a uma região</h4>
+            <p>Criar formulário autenticado com as categorias e limites aprovados e enviar o feedback para a região selecionada. Explicar que o envio fica pendente e não altera o mapa no MVP.</p>
+            <p><strong>Backend:</strong> tratar respostas de validação e autorização; não alterar localmente score, cor ou raio após enviar feedback.</p>
+            <p class="done"><b>Pronto quando:</b> testes verificarem o envio válido, os erros de validação e a imutabilidade visual do score.</p>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>QUALIDADE E PRIVACIDADE</span><span>MAPM-05</span></div>
+            <h4>Testar o mapa e revisar proteção de dados</h4>
+            <p>Criar testes de UI e integração com respostas fake para zoom, regiões, falhas e feedback. Revisar acessibilidade, contraste das cores e mensagens para pessoas que não possam usar o mapa visualmente.</p>
+            <p><strong>Observabilidade:</strong> não enviar coordenada exata, identificadores pessoais ou conteúdo de feedback para ferramentas de telemetria sem a política aprovada.</p>
+            <p class="done"><b>Pronto quando:</b> a demonstração validar consumo do backend e a resposta do app não revelar dados além do contrato público.</p>
+          </article>
+        </div></div>
+      </section>
+
+      <section class="sequence" aria-labelledby="sequence-title">
+        <p class="eyebrow">ORDEM SUGERIDA</p>
+        <h2 id="sequence-title">Integrar contratos antes de liberar ações sensíveis.</h2>
+        <ol>
+          <li><span>ETAPA 01</span>SOSM-01/02 e MAPM-01.</li>
+          <li><span>ETAPA 02</span>SOSM-03/04 e MAPM-02/03.</li>
+          <li><span>ETAPA 03</span>SOSM-05 e MAPM-04.</li>
+          <li><span>ETAPA 04</span>SOSM-06 e MAPM-05.</li>
+        </ol>
+      </section>
+    </main>
+
+    <footer><p>Click S.O.S · épicos técnicos do mobile · decisões pendentes estão na documentação de regras de negócio.</p></footer>
+  </body>
+</html>
