@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: pytest
+        name: Executar todos os testes Python
+        entry: pytest
+        language: system
+        pass_filenames: false
+        always_run: true
