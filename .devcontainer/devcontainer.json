@@ -1,0 +1,25 @@
+{
+  "name": "Click S.O.S Backend",
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": ".."
+  },
+  "workspaceFolder": "/workspaces/backend",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/backend,type=bind",
+  "forwardPorts": [8000],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": ["tests"],
+        "editor.formatOnSave": true
+      }
+    }
+  },
+  "postCreateCommand": "pip install -e '.[dev]' && pre-commit install"
+}
