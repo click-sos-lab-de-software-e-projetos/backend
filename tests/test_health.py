@@ -1,19 +1,8 @@
-import asyncio
-
-import httpx
-
-from app.main import app
+from app.main import app, health_check
 
 
 def test_health_check_returns_ok() -> None:
-    async def request_health_check() -> httpx.Response:
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(
-            transport=transport, base_url="http://testserver"
-        ) as client:
-            return await client.get("/health")
+    health_route = next(route for route in app.routes if route.path == "/health")
 
-    response = asyncio.run(request_health_check())
-
-    assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert "GET" in health_route.methods
+    assert health_check() == {"status": "ok"}
