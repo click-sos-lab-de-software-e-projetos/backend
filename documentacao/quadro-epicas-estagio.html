@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Click S.O.S lista de tarefas</title>
+    <link rel="stylesheet" href="quadro-epicas-estagio.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <p class="eyebrow">CLICK S.O.S · BACKEND</p>
+      <h1>Click S.O.S<br />lista de tarefas.</h1>
+      <p class="intro">Dois épicos backend para serem executados de forma independente. Cada cartão descreve uma entrega técnica com critério de aceite.</p>
+      <nav class="document-links" aria-label="Documentações do projeto">
+        <a href="documentacao-regras-de-negocio.html">Regras de negócio</a>
+        <a class="placeholder-link" href="#epicos-mobile">Épicos do mobile <span>em breve</span></a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="yume-notice" aria-labelledby="yume-notice-title">
+        <div class="yume-notice-content">
+          <p class="eyebrow">REGRAS DE COLABORAÇÃO</p>
+          <h2 id="yume-notice-title">AVISOS AMIAUGÁVEIS DA YUME</h2>
+          <p class="yume-intro">Essas sao algumas boas praticas de desenvolvimento de codigos que devemos ter no projeto, acredite isso evita alguns problemas :b , plus, todo mundo pode escolher coisas pro projeto, entao isso sera o que eu vou escolher</p>
+          <blockquote>“Usem TDD e conventional commits nessa caceta.”</blockquote>
+          <blockquote>“Nao dar push direto para main, crie uma branch e abra um PR por terminar.”</blockquote>
+          <blockquote>“UMA BRANCH POR TICKET: <code>feat/sos-03-persistir-alerta</code>.”</blockquote>
+          <blockquote>“NAO VAZAR AS VARIAVEIS DE AMBIENTE: nunca incluir <code>.env</code>, chave de API, telefone real ou coordenada real em commits/logs.”</blockquote>
+          <p class="links-label">LISTA DE LINKS</p>
+          <div class="practice-links">
+            <a href="https://martinfowler.com/bliki/TestDrivenDevelopment.html" target="_blank" rel="noreferrer">Documentação sobre TDD</a>
+            <a href="https://www.conventionalcommits.org/en/v1.0.0/" target="_blank" rel="noreferrer">Conventional Commits</a>
+            <a href="https://docs.github.com/en/pull-requests/how-tos/create-pull-requests/creating-a-pull-request" target="_blank" rel="noreferrer">Como criar uma Pull Request</a>
+          </div>
+        </div>
+        <img src="assets/gatinho-bravo.jpg" alt="Gatinho bravo observando as práticas de desenvolvimento" />
+      </section>
+
+      <section class="overview" aria-label="Visão geral da divisão">
+        <article>
+          <span class="number">01</span>
+          <h2>Épico: alerta S.O.S</h2>
+          <p>Persistir um alerta autenticado e despachar mensagens WhatsApp em segundo plano.</p>
+          <ul><li><strong>Responsável: —</strong></li><li>Saída técnica: API, migrações, worker, integração e testes.</li></ul>
+        </article>
+        <article>
+          <span class="number">02</span>
+          <h2>Épico: mapa de risco</h2>
+          <p>Importar regiões de São Paulo e publicar dados agregados pela API.</p>
+          <ul><li><strong>Responsável: —</strong></li><li>Saída técnica: PostGIS, importador, feedback e endpoint de mapa.</li></ul>
+        </article>
+      </section>
+
+      <section class="data-models" aria-labelledby="models-title">
+        <div class="section-heading">
+          <p class="eyebrow">MODELOS DE DADOS</p>
+          <h2 id="models-title">Formato alvo das tabelas e contratos</h2>
+          <p>Os exemplos mostram a estrutura lógica. No PostgreSQL/PostGIS, UUIDs, datas e geometrias devem usar tipos nativos, não texto JSON.</p>
+        </div>
+        <div class="model-grid">
+          <article class="model-card"><h3>alertas_sos</h3><pre>{
+  "id": "uuid",
+  "usuario_id": "uuid",
+  "localizacao": {"lat": -23.55, "lng": -46.63},
+  "mensagem": "Preciso de ajuda",
+  "status_envio": "PENDENTE",
+  "tentativas": 0,
+  "criado_em": "2026-10-08T12:00:00Z"
+}</pre></article>
+          <article class="model-card"><h3>tentativas_envio_sos</h3><pre>{
+  "id": "uuid",
+  "alerta_id": "uuid",
+  "contato_id": "uuid",
+  "numero_tentativa": 1,
+  "status": "FALHOU",
+  "erro_codigo": "TIMEOUT",
+  "executado_em": "2026-10-08T12:00:05Z"
+}</pre></article>
+          <article class="model-card"><h3>contatos_emergencia</h3><pre>{
+  "id": "uuid",
+  "usuario_id": "uuid",
+  "nome": "Maria",
+  "telefone_whatsapp": "+5511999999999",
+  "ativo": true,
+  "consentido_em": "2026-10-08T12:00:00Z"
+}</pre></article>
+          <article class="model-card"><h3>regioes_seguranca</h3><pre>{
+  "id": "uuid",
+  "nome": "Pinheiros",
+  "limites": "MULTIPOLYGON SRID 4326",
+  "centroide": {"lat": -23.56, "lng": -46.69},
+  "score_oficial": 4.2,
+  "score_final": 4.2,
+  "cor_hex": "#EAB308",
+  "raio_metros": 1200
+}</pre></article>
+          <article class="model-card"><h3>feedbacks_comunidade</h3><pre>{
+  "id": "uuid",
+  "usuario_id": "uuid",
+  "regiao_id": "uuid",
+  "categoria": "ILUMINACAO",
+  "mensagem": "Rua escura",
+  "status": "PENDENTE",
+  "criado_em": "2026-10-08T12:00:00Z"
+}</pre></article>
+        </div>
+      </section>
+
+      <section class="epic sos" aria-labelledby="sos-title">
+        <div class="epic-heading">
+          <div><p class="eyebrow">ÉPICO 01 · BACKEND</p><h2 id="sos-title">Alerta S.O.S</h2><p>Implementar criação, persistência, despacho assíncrono, retentativas e rastreabilidade do alerta.</p></div>
+          <div class="success"><strong>Critério de pronto</strong><span>Um alerta autenticado é gravado, enviado a contatos consentidos e termina como <code>ENVIADO</code> ou <code>ERRO</code>.</span></div>
+        </div>
+        <div class="lanes solo"><div class="lane">
+          <div class="lane-header"><span class="avatar a">—</span><h3>Responsável pelo Épico S.O.S</h3></div>
+
+          <article class="task">
+            <div class="task-meta"><span>CONTRATO HTTP</span><span>SOS-01</span></div>
+            <h4>Definir schemas e rota de criação</h4>
+            <p>Criar schemas Pydantic e OpenAPI para <code>POST /api/v1/sos/alertas</code> com latitude, longitude e mensagem opcional. Obter o usuário exclusivamente do Bearer Token.</p>
+            <p><strong>Banco:</strong> não cria, lê ou atualiza tabelas nesta tarefa; somente define o contrato que será persistido em <code>alertas_sos</code>.</p>
+            <p class="done"><b>Pronto quando:</b> OpenAPI documentar corpos, respostas 201/401/422 e todos os schemas tiverem testes de validação.</p>
+            <div class="yume-decision"><strong>Decisão pendente da Yume</strong><p>Definir o texto padrão da mensagem e o tamanho máximo da mensagem livre.</p></div>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>PERSISTÊNCIA</span><span>SOS-02</span></div>
+            <h4>Criar migrações de usuários, contatos e alertas</h4>
+            <p>Criar migrações Alembic para usuários, contatos de emergência e alertas. Usar UUID, timestamps com fuso horário, status de entrega e ponto geográfico SRID 4326; criar índice espacial no ponto.</p>
+            <p><strong>Banco:</strong> criar as tabelas <code>usuarios</code>, <code>contatos_emergencia</code>, <code>alertas_sos</code> e <code>tentativas_envio_sos</code>; criar FKs, índice GiST em <code>alertas_sos.localizacao</code> e índice por <code>alerta_id</code> nas tentativas.</p>
+            <p class="done"><b>Pronto quando:</b> as migrações sobem e descem em PostgreSQL/PostGIS e os relacionamentos são cobertos por teste de integração.</p>
+            <div class="yume-decision"><strong>Decisão pendente da Yume</strong><p>Definir retenção e exclusão de alertas e coordenadas para que o schema inclua os campos necessários.</p></div>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>SERVIÇO</span><span>SOS-03</span></div>
+            <h4>Persistir alerta em transação</h4>
+            <p>Implementar serviço que valida coordenadas, verifica contatos ativos consentidos, grava o alerta como <code>PENDENTE</code> e devolve seu UUID sem chamar serviços externos.</p>
+            <p><strong>Banco:</strong> fazer <code>SELECT</code> em <code>contatos_emergencia</code> por <code>usuario_id</code>, <code>ativo = true</code> e consentimento confirmado; fazer <code>INSERT</code> em <code>alertas_sos</code>.</p>
+            <p class="done"><b>Pronto quando:</b> testes cobrem coordenada inválida, usuário sem contatos ativos e criação bem-sucedida sem envio de WhatsApp.</p>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>MENSAGEM</span><span>SOS-04</span></div>
+            <h4>Montar payload de emergência</h4>
+            <p>Criar função pura que recebe alerta e contato, monta a mensagem, inclui coordenadas e gera link Google Maps no formato <code>https://www.google.com/maps?q=lat,lng</code>.</p>
+            <p><strong>Banco:</strong> não altera tabelas; recebe os dados já carregados de <code>alertas_sos</code> e <code>contatos_emergencia</code>.</p>
+            <p class="done"><b>Pronto quando:</b> testes verificarem coordenadas, link e fallback para mensagem padrão sem chamar a Evolution API.</p>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>INTEGRAÇÃO</span><span>SOS-05</span></div>
+            <h4>Criar cliente da Evolution API</h4>
+            <p>Criar cliente HTTP isolado, configurado somente por variáveis de ambiente, com timeout e interface fake para testes. Não gravar chave, telefone ou corpo da mensagem em logs.</p>
+            <p><strong>Banco:</strong> não cria nem altera tabelas; a persistência do resultado será responsabilidade do worker.</p>
+            <p class="done"><b>Pronto quando:</b> testes com fake cobrem resposta de sucesso, timeout e erro HTTP.</p>
+            <div class="yume-decision"><strong>Decisão pendente da Yume</strong><p>Disponibilizar URL, credenciais e ambiente de teste; confirmar os números de devs consentidos no modo demonstração.</p></div>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>WORKER</span><span>SOS-06</span></div>
+            <h4>Despachar contatos em segundo plano</h4>
+            <p>Após confirmar a transação, enfileirar tarefa assíncrona para todos os contatos ativos. Atualizar o resultado por contato sem bloquear a resposta HTTP.</p>
+            <p><strong>Banco:</strong> fazer <code>SELECT</code> em <code>alertas_sos</code> e <code>contatos_emergencia</code>; fazer <code>INSERT</code> em <code>tentativas_envio_sos</code> e atualizar <code>alertas_sos.status_envio</code>.</p>
+            <p class="done"><b>Pronto quando:</b> um cliente fake lento não aumenta o tempo de resposta e cada contato possui resultado persistido.</p>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>RETENTATIVAS</span><span>SOS-07</span></div>
+            <h4>Aplicar política de envio</h4>
+            <p>Em falha, manter o alerta como <code>PENDENTE</code> e executar até 5 tentativas com esperas de 5, 10, 15, 20 e 25 segundos. Após a quinta falha, atualizar para <code>ERRO</code>.</p>
+            <p><strong>Banco:</strong> inserir uma linha por tentativa em <code>tentativas_envio_sos</code>; atualizar <code>alertas_sos.tentativas</code> e <code>alertas_sos.status_envio</code> em cada transição.</p>
+            <p class="done"><b>Pronto quando:</b> testes com relógio controlado verificarem intervalos, contagem de tentativas e transição final.</p>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>OBSERVABILIDADE E TESTES</span><span>SOS-08</span></div>
+            <h4>Adicionar logs e teste ponta a ponta</h4>
+            <p>Adicionar logs estruturados pelo UUID do alerta e criar teste de integração com banco e Evolution API fake para o fluxo completo.</p>
+            <p><strong>Banco:</strong> o teste deve preparar e limpar <code>usuarios</code>, <code>contatos_emergencia</code>, <code>alertas_sos</code> e <code>tentativas_envio_sos</code>.</p>
+            <p class="done"><b>Pronto quando:</b> o teste comprovar persistência, worker, disparo para até 3 contatos e estados finais sem vazar dados sensíveis.</p>
+            <div class="yume-decision"><strong>Decisão pendente da Yume</strong><p>Definir ambientes autorizados a usar o chip de demonstração e como será guardada a evidência de consentimento dos números de teste.</p></div>
+          </article>
+        </div></div>
+      </section>
+
+      <section class="epic map" aria-labelledby="map-title">
+        <div class="epic-heading">
+          <div><p class="eyebrow">ÉPICO 02 · BACKEND</p><h2 id="map-title">Mapa de risco</h2><p>Armazenar geometria e score de regiões, importar a planilha inicial e fornecer respostas agregadas para clientes HTTP.</p></div>
+          <div class="success"><strong>Critério de pronto</strong><span>A API retorna regiões de São Paulo com centroide, score, cor e raio; feedbacks pendentes não alteram o mapa.</span></div>
+        </div>
+        <div class="lanes solo"><div class="lane">
+          <div class="lane-header"><span class="avatar b">—</span><h3>Responsável pelo Épico do mapa</h3></div>
+
+          <article class="task">
+            <div class="task-meta"><span>CONTRATO DE DADOS</span><span>MAP-01</span></div>
+            <h4>Definir contrato da planilha de importação</h4>
+            <p>Documentar colunas, tipos e validações da planilha Excel: identificador da região, nome, geometria, score oficial, data da fonte e raio. Criar arquivo de exemplo sem dados sensíveis.</p>
+            <p><strong>Banco:</strong> não cria nem altera tabelas nesta tarefa; define o formato que alimentará <code>regioes_seguranca</code>.</p>
+            <p class="done"><b>Pronto quando:</b> o validador rejeitar planilhas sem coluna obrigatória ou com valores inválidos.</p>
+            <div class="yume-decision"><strong>Decisão pendente da Yume</strong><p>Entregar a planilha de toda São Paulo, informar origem/licença e definir a regra usada para preencher o raio de cada região.</p></div>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>POSTGIS</span><span>MAP-02</span></div>
+            <h4>Criar tabela de regiões de segurança</h4>
+            <p>Criar migração para regiões com ID público, nome, multipolígono SRID 4326, centroide, score oficial, score final, cor e raio. Habilitar PostGIS e criar índice GiST no multipolígono.</p>
+            <p><strong>Banco:</strong> criar <code>regioes_seguranca</code>; habilitar extensão PostGIS; criar colunas <code>limites</code> (MultiPolygon), <code>centroide</code> (Point), <code>score_oficial</code>, <code>score_final</code>, <code>cor_hex</code> e <code>raio_metros</code>.</p>
+            <p class="done"><b>Pronto quando:</b> uma consulta espacial de teste encontra uma região e o centroide é retornado no SRID esperado.</p>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>IMPORTAÇÃO</span><span>MAP-03</span></div>
+            <h4>Implementar carga idempotente do Excel</h4>
+            <p>Criar comando ou script que lê o Excel aprovado, valida linhas, faz upsert por ID público e calcula/atualiza o centroide a partir do multipolígono.</p>
+            <p><strong>Banco:</strong> fazer <code>INSERT ... ON CONFLICT DO UPDATE</code> em <code>regioes_seguranca</code>; atualizar <code>limites</code>, <code>centroide</code>, scores, cor e raio da região importada.</p>
+            <p class="done"><b>Pronto quando:</b> duas execuções com o mesmo arquivo não duplicarem regiões e o relatório listar importadas, atualizadas e rejeitadas.</p>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>FEEDBACK COMUNITÁRIO</span><span>MAP-04</span></div>
+            <h4>Registrar feedback comunitário pendente</h4>
+            <p>Criar tabela, schema e endpoint autenticado para criar feedback vinculado a uma região, sempre com status <code>PENDENTE</code>. O feedback não pode alterar score ou aparecer no endpoint de mapa.</p>
+            <p><strong>Banco:</strong> criar <code>feedbacks_comunidade</code> com FKs para <code>usuarios</code> e <code>regioes_seguranca</code>; fazer <code>INSERT</code> com status inicial <code>PENDENTE</code>. Não atualizar <code>regioes_seguranca.score_final</code>.</p>
+            <p class="done"><b>Pronto quando:</b> testes comprovarem criação autenticada e ausência de impacto no score e na resposta pública.</p>
+            <div class="yume-decision"><strong>Decisão pendente da Yume</strong><p>Definir categorias aceitas, texto máximo, permissão de foto e o acesso administrativo usado para remover feedbacks no MVP.</p></div>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>REGRA DE SCORE</span><span>MAP-05</span></div>
+            <h4>Calcular classificação de risco</h4>
+            <p>Criar serviço puro que recebe o score oficial e devolve score final, nível de risco, cor hexadecimal e raio. Enquanto não existir moderação, feedback comunitário deve ter peso zero.</p>
+            <p><strong>Banco:</strong> ler <code>regioes_seguranca.score_oficial</code> e atualizar <code>score_final</code> e <code>cor_hex</code> na importação ou em rotina de recálculo. Não ler nem somar <code>feedbacks_comunidade</code> no MVP.</p>
+            <p class="done"><b>Pronto quando:</b> testes de fronteira cobrirem todas as faixas de cor e comprovarem que feedback pendente não altera o resultado.</p>
+            <div class="yume-decision"><strong>Decisão pendente da Yume</strong><p>Confirmar fórmula do score oficial e limites numéricos das faixas verde, amarela, laranja e vermelha.</p></div>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>API PÚBLICA</span><span>MAP-06</span></div>
+            <h4>Publicar regiões agregadas</h4>
+            <p>Criar <code>GET /api/v1/mapa/regioes</code> com filtros opcionais de latitude, longitude e raio. Retornar apenas ID público, nome, centroide, score, cor e raio.</p>
+            <p><strong>Banco:</strong> fazer apenas <code>SELECT</code> em <code>regioes_seguranca</code>; usar <code>ST_DWithin</code> ou equivalente para o filtro espacial. Não consultar <code>alertas_sos</code> nem <code>feedbacks_comunidade</code>.</p>
+            <p class="done"><b>Pronto quando:</b> testes cobrirem filtros espaciais, validação de parâmetros e ausência de campos privados na resposta.</p>
+            <div class="yume-decision"><strong>Decisão pendente da Yume</strong><p>Definir valor padrão e limite máximo do raio de consulta, além do limite de regiões por resposta.</p></div>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>SEGURANÇA DE DADOS</span><span>MAP-07</span></div>
+            <h4>Garantir resposta agregada e segura</h4>
+            <p>Criar schema público dedicado e testes que bloqueiem geometria completa, score comunitário pendente, origem bruta do Excel e qualquer localização individual.</p>
+            <p><strong>Banco:</strong> nenhuma escrita; a consulta deve selecionar explicitamente apenas as colunas públicas de <code>regioes_seguranca</code>, sem carregar tabelas de alertas ou feedbacks.</p>
+            <p class="done"><b>Pronto quando:</b> snapshot de resposta e testes de serialização provarem que campos bloqueados não podem ser retornados.</p>
+          </article>
+
+          <article class="task">
+            <div class="task-meta"><span>TESTE DE INTEGRAÇÃO</span><span>MAP-08</span></div>
+            <h4>Testar importação e contrato do mapa</h4>
+            <p>Criar regiões de teste e validar a sequência completa: importação, consulta PostGIS, cálculo de classificação e resposta OpenAPI.</p>
+            <p><strong>Banco:</strong> o teste deve preparar e limpar <code>regioes_seguranca</code> e <code>feedbacks_comunidade</code>; usar PostGIS real para validar geometria, centroide e filtro espacial.</p>
+            <p class="done"><b>Pronto quando:</b> o teste executar contra PostgreSQL/PostGIS e validar todas as regiões de exemplo sem depender de outro repositório.</p>
+          </article>
+        </div></div>
+      </section>
+
+      <section class="sequence" aria-labelledby="sequence-title">
+        <p class="eyebrow">ORDEM SUGERIDA</p>
+        <h2 id="sequence-title">Construir dados antes de integrações.</h2>
+        <ol>
+          <li><span>Semana 1</span> SOS-01/02 e MAP-01/02.</li>
+          <li><span>Semana 2</span> SOS-03/04/05 e MAP-03/04.</li>
+          <li><span>Semana 3</span> SOS-06/07 e MAP-05/06/07.</li>
+          <li><span>Semana 4</span> SOS-08 e MAP-08; corrigir falhas de integração.</li>
+        </ol>
+      </section>
+    </main>
+
+    <footer><p>Click S.O.S · lista técnica de tarefas backend · decisões pendentes estão na documentação de regras de negócio.</p></footer>
+  </body>
+</html>

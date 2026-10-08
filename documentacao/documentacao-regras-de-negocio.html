@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Click S.O.S — Documentação de regras de negócio</title>
+    <link rel="stylesheet" href="quadro-epicas-estagio.css" />
+  </head>
+  <body>
+    <header class="hero rules-hero">
+      <p class="eyebrow">CLICK S.O.S · BACKEND</p>
+      <h1>Documentação de<br />regras de negócio.</h1>
+      <p class="intro">Registro das decisões da Yume que orientam os épicos backend de S.O.S e mapa. Este documento é a fonte de verdade para as regras abaixo.</p>
+      <p class="back-link"><a href="quadro-epicas-estagio.html">← Voltar para a lista de tarefas</a></p>
+    </header>
+
+    <main>
+      <section class="answers" aria-labelledby="answers-title">
+        <div class="section-heading">
+          <p class="eyebrow">REGRAS RESPONDIDAS</p>
+          <h2 id="answers-title">Decisões</h2>
+        </div>
+
+        <div class="answer-grid">
+          <article class="answer-card">
+            <span class="answer-id">REGRA 01 · S.O.S</span>
+            <h3>Quem pode disparar o alerta?</h3>
+            <p><strong>Decisão:</strong> somente uma pessoa usuária cadastrada e autenticada pode criar um alerta S.O.S.</p>
+            <p><strong>Impacto backend:</strong> a rota do alerta exige autenticação e deriva a pessoa usuária do token, sem aceitar um identificador de usuário enviado livremente no corpo.</p>
+            <p class="mobile-note"><strong>Impacto mobile:</strong> o botão S.O.S só pode ficar disponível para uma pessoa com sessão autenticada; o aplicativo não envia um ID de usuário no alerta.</p>
+            <p><strong>Modo demonstração:</strong> o envio será feito por um chip comprado pelo projeto para números reais de WhatsApp das próprias pessoas desenvolvedoras.</p>
+            <p class="note"><strong>Ressalva:</strong> cada número de teste deve ter consentimento explícito. O ambiente de demonstração deve ficar separado do ambiente de produção e evitar expor localização real em logs ou para pessoas fora da equipe.</p>
+          </article>
+
+          <article class="answer-card">
+            <span class="answer-id">REGRA 02 · S.O.S</span>
+            <h3>O que a mensagem envia?</h3>
+            <p><strong>Decisão:</strong> a mensagem envia coordenadas GPS, um link do Google Maps e uma mensagem escrita pela pessoa usuária informando que está em perigo.</p>
+            <p><strong>Mensagem padrão:</strong> haverá um texto padrão, ainda a ser definido, para casos em que a pessoa não escreva uma mensagem.</p>
+            <p><strong>Impacto backend:</strong> validar latitude, longitude e tamanho do texto; persistir o ponto e a mensagem; gerar o link do Google Maps a partir das coordenadas antes do envio.</p>
+            <p class="mobile-note"><strong>Impacto mobile:</strong> solicitar a localização, coletar latitude e longitude e oferecer campo de mensagem livre com fallback para a mensagem padrão.</p>
+          </article>
+
+          <article class="answer-card">
+            <span class="answer-id">REGRA 03 · CONTATOS</span>
+            <h3>Como os contatos recebem o alerta?</h3>
+            <p><strong>Decisão:</strong> cada pessoa usuária padrão possui até 3 contatos. Não existe prioridade: todos os contatos ativos recebem o alerta quando o botão é acionado.</p>
+            <p><strong>Consentimento:</strong> a pessoa destinatária precisa consentir antes de ser cadastrada como contato de emergência.</p>
+            <p><strong>Impacto backend:</strong> limitar o cadastro a 3 contatos ativos e registrar a confirmação de consentimento antes de habilitar o envio.</p>
+            <p class="mobile-note"><strong>Impacto mobile:</strong> limitar a tela a 3 contatos ativos e informar que o contato só será ativado após consentir pelo link da futura página web.</p>
+          </article>
+
+          <article class="answer-card">
+            <span class="answer-id">REGRA 04 · EVOLUTION API</span>
+            <h3>O que acontece se o envio falhar?</h3>
+            <p><strong>Decisão:</strong> o backend registra o erro, tenta novamente e mantém o alerta com status <code>PENDENTE</code> até que seja enviado.</p>
+            <p><strong>Retentativas:</strong> no máximo 5 tentativas, com intervalos incrementais de 5, 10, 15, 20 e 25 segundos. Após a quinta falha, o alerta passa para <code>ERRO</code> no banco.</p>
+            <p><strong>Impacto backend:</strong> persistir cada tentativa e separar a criação do alerta do worker de despacho.</p>
+            <p class="mobile-note"><strong>Impacto mobile:</strong> confirmar a criação do alerta imediatamente; quando houver consulta de status, diferenciar <code>PENDENTE</code>, <code>ENVIADO</code> e <code>ERRO</code>.</p>
+          </article>
+
+          <article class="answer-card">
+            <span class="answer-id">REGRA 05 · COMUNIDADE</span>
+            <h3>Como funcionam alertas comunitários?</h3>
+            <p><strong>Decisão:</strong> o MVP deve permitir criar feedbacks comunitários, mas não implementará a validação por pessoas moderadoras.</p>
+            <p><strong>Impacto backend:</strong> criar tabela, contrato e endpoint para registrar feedbacks com status pendente. Eles não devem alterar o score nem aparecer no mapa até existir validação.</p>
+            <p class="mobile-note"><strong>Impacto mobile:</strong> oferecer o envio de feedback e explicar que ele fica pendente, sem alterar o mapa durante o MVP.</p>
+            <p class="note"><strong>Operação temporária:</strong> pessoas desenvolvedoras poderão apagar feedbacks customizados diretamente no banco. Essa ação não terá trilha de auditoria; recomenda-se substituí-la por moderação e histórico de exclusão após o MVP.</p>
+          </article>
+
+          <article class="answer-card">
+            <span class="answer-id">REGRA 06 · DADOS DO MAPA</span>
+            <h3>Qual é a fonte dos dados?</h3>
+            <p><strong>Decisão:</strong> a fonte inicial será uma planilha Excel, que será migrada para o banco.</p>
+            <p><strong>Responsável:</strong> Yume prepara e aprova a planilha antes da carga. O backend deve oferecer uma carga idempotente e registrar linhas rejeitadas.</p>
+            <p class="mobile-note"><strong>Impacto mobile:</strong> nenhum contrato adicional além do endpoint de regiões; a origem Excel permanece uma responsabilidade interna do backend.</p>
+          </article>
+
+          <article class="answer-card">
+            <span class="answer-id">REGRA 07 · COBERTURA</span>
+            <h3>Quais regiões e raios serão usados?</h3>
+            <p><strong>Decisão:</strong> a demonstração cobre toda a cidade de São Paulo. O raio depende do tamanho de cada região.</p>
+            <p><strong>Impacto backend:</strong> o banco deve guardar os limites da região e a API deve retornar um raio calculado ou carregado para cada registro.</p>
+            <p class="mobile-note"><strong>Impacto mobile:</strong> renderizar regiões recebidas da API usando centroide, score, cor e raio, sem calcular o tamanho da região localmente.</p>
+            <p class="pending"><strong>Pendente:</strong> definir a regra objetiva para calcular ou preencher o raio de cada região.</p>
+          </article>
+
+          <article class="answer-card">
+            <span class="answer-id">REGRA 08 · RETENÇÃO</span>
+            <h3>Por quanto tempo alertas e localização ficam guardados?</h3>
+            <p><strong>Situação atual:</strong> não há uma regra de retenção definida para o MVP.</p>
+            <p class="pending"><strong>Obrigatório antes de produção:</strong> definir uma retenção mínima, uma rotina de exclusão e quem pode acessar os dados. Enquanto isso, o backend deve evitar uso secundário da localização e limitar seu acesso ao estritamente necessário.</p>
+            <p class="mobile-note"><strong>Impacto mobile:</strong> informar de forma clara que a localização é enviada durante o alerta e incluir a futura política de retenção na tela de privacidade.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="tech-lead" aria-labelledby="lead-title">
+        <div class="tech-lead-heading">
+          <p class="eyebrow">TAREFAS DA TECH LEAD</p>
+          <h2 id="lead-title">Yume · decisões e entregas de liderança</h2>
+          <p>Estas tarefas foram movidas da lista de execução. Elas desbloqueiam as implementações backend e devem ser atualizadas neste documento quando concluídas.</p>
+        </div>
+        <div class="lead-grid">
+          <article class="lead-task"><span>YUME-01 · DECIDIDO</span><h3>Organizar modo demonstração</h3><p>Comprar e configurar o chip de teste; registrar os números de WhatsApp de devs que consentiram em receber mensagens reais.</p></article>
+          <article class="lead-task"><span>YUME-02 · PENDENTE</span><h3>Definir a mensagem padrão</h3><p>Registrar o texto padrão do S.O.S, a mensagem livre da pessoa usuária e o formato final do link de Google Maps.</p></article>
+          <article class="lead-task"><span>YUME-03 · PENDENTE</span><h3>Definir retenção de localização</h3><p>A política de retentativas foi definida: 5 tentativas em intervalos de 5 segundos. Ainda falta definir retenção e exclusão de alertas/localização.</p></article>
+          <article class="lead-task"><span>YUME-04 · PENDENTE</span><h3>Preparar Evolution API de teste</h3><p>Disponibilizar ambiente, credenciais seguras e regra de autorização para qualquer envio de WhatsApp real pelo chip do projeto.</p></article>
+          <article class="lead-task"><span>YUME-05 · PENDENTE</span><h3>Preparar planilha de São Paulo</h3><p>Entregar e aprovar a planilha Excel para toda a cidade de São Paulo, com colunas, fonte, data e regra de raio por região.</p></article>
+          <article class="lead-task"><span>YUME-06 · CONTÍNUO</span><h3>Validar entregas backend</h3><p>Revisar OpenAPI, migrações, proteção de dados e critérios de pronto antes de aceitar cada épico.</p></article>
+        </div>
+      </section>
+    </main>
+
+    <footer><p>Click S.O.S · regras de negócio backend · última atualização: respostas iniciais da Yume.</p></footer>
+  </body>
+</html>
