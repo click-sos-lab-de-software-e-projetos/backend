@@ -68,3 +68,13 @@ docker build -t click-sos-backend .
 ```
 
 No VS Code, abra o projeto com **Reopen in Container** e confirme que a porta `8000`, os testes e a rota `/health` estão disponíveis. O build Docker deve ser executado em uma máquina com Docker Desktop ou Docker Engine instalado.
+
+## Documentação e GitHub Pages
+
+As páginas estáticas do projeto estão em `docs/`:
+
+- `docs/index.html`: lista técnica de tarefas backend;
+- `docs/business-rules.html`: regras de negócio;
+- `docs/project-structure.md`: organização do repositório.
+
+No GitHub, configure o Pages para publicar a branch `main` a partir da pasta `/docs`. A página inicial será `index.html`.

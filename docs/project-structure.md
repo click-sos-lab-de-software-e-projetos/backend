@@ -5,7 +5,7 @@ Este documento descreve a organização atual do backend do Click S.O.S. O proje
 ```text
 backend/
 ├── .devcontainer/
-├── documentacao/
+├── docs/
 ├── migrations/
 ├── scripts/
 ├── src/
@@ -25,7 +25,7 @@ backend/
 
 Configura o ambiente de desenvolvimento para VS Code Dev Containers. Permite que integrantes da equipe, especialmente em Windows com Docker Desktop, abram o repositório em um container com as dependências e extensões necessárias.
 
-### `documentacao/`
+### `docs/`
 
 Armazena documentos técnicos do backend, como este guia. Não deve conter segredos, credenciais ou arquivos `.env`.
 
