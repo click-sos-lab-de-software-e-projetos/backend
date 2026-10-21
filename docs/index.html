@@ -10,7 +10,7 @@
     <header class="hero">
       <p class="eyebrow">CLICK S.O.S · BACKEND</p>
       <h1>Click S.O.S<br />lista de tarefas.</h1>
-      <p class="intro">Dois épicos backend para serem executados de forma independente. Cada cartão descreve uma entrega técnica com critério de aceite.</p>
+      <p class="intro">Um épico de fundação (conta e contatos) e dois épicos backend para serem executados de forma independente. Cada cartão descreve uma entrega técnica com critério de aceite.</p>
       <nav class="document-links" aria-label="Documentações do projeto">
         <a href="business-rules.html">Regras de negócio</a>
         <a href="mobile-epic.html">Épicos do mobile</a>
@@ -59,6 +59,14 @@
           <p>Os exemplos mostram a estrutura lógica. No PostgreSQL/PostGIS, UUIDs, datas e geometrias devem usar tipos nativos, não texto JSON.</p>
         </div>
         <div class="model-grid">
+          <article class="model-card"><h3>usuarios</h3><pre>{
+  "id": "uuid",
+  "nome_completo": "Pessoa Exemplo",
+  "email": "pessoa@exemplo.com",
+  "senha_hash": "bcrypt",
+  "telefone_pessoal": "+5511900000000",
+  "criado_em": "2026-10-08T12:00:00Z"
+}</pre></article>
           <article class="model-card"><h3>alertas_sos</h3><pre>{
   "id": "uuid",
   "usuario_id": "uuid",
@@ -107,6 +115,35 @@
         </div>
       </section>
 
+      <section class="epic foundation" aria-labelledby="account-title">
+        <div class="epic-heading">
+          <div><p class="eyebrow">ÉPICO 00 · BACKEND</p><h2 id="account-title">Conta e contatos</h2><p>Fundação exigida pelas Regras 01, 03 e 09: emitir o token que identifica a pessoa usuária e gerir os contatos que recebem o alerta.</p></div>
+          <div class="success"><strong>Critério de pronto</strong><span>Uma pessoa se cadastra, faz login, recebe um JWT válido para as rotas privadas e mantém até 3 contatos ativos com consentimento registrado.</span></div>
+        </div>
+        <div class="lanes solo"><div class="lane">
+          <div class="lane-header"><span class="avatar a">—</span><h3>Responsável pelo Épico de conta</h3></div>
+
+          <article class="task foundation-card">
+            <div class="task-meta"><span>AUTENTICAÇÃO</span><span>AUTH-01</span></div>
+            <h4>Implementar cadastro, login e emissão de JWT</h4>
+            <p>Criar <code>POST /api/v1/auth/cadastro</code> e <code>POST /api/v1/auth/login</code>. Guardar a senha com bcrypt e emitir JWT HS256 assinado com <code>JWT_SECRET_KEY</code>, com <code>sub</code> igual ao UUID da pessoa usuária e <code>exp</code> obrigatório (Regra 09).</p>
+            <p><strong>Banco:</strong> fazer <code>INSERT</code> em <code>usuarios</code> no cadastro (e-mail único) e <code>SELECT</code> por e-mail no login. Depende da migração de <code>usuarios</code> criada no SOS-02.</p>
+            <p><strong>Segurança:</strong> credencial inválida devolve 401 com mensagem genérica, sem revelar se o e-mail existe; senha, hash e token nunca aparecem em resposta ou log.</p>
+            <p class="done"><b>Pronto quando:</b> testes cobrirem cadastro (201), e-mail duplicado (409), dados inválidos (422), senha errada (401) e um token emitido aqui for aceito pela dependência de autenticação do SOS-01.</p>
+            <div class="yume-decision"><strong>Decisão pendente da Yume</strong><p>Definir tempo de expiração do token, se haverá renovação (refresh) no MVP e a política mínima de senha.</p></div>
+          </article>
+
+          <article class="task foundation-card">
+            <div class="task-meta"><span>CONTATOS</span><span>CONT-01</span></div>
+            <h4>Gerir contatos de emergência</h4>
+            <p>Criar o recurso autenticado <code>/api/v1/contatos</code> para listar, cadastrar, editar e remover contatos. Limitar a 3 contatos ativos por pessoa usuária e validar o telefone em formato E.164 (Regra 03).</p>
+            <p><strong>Banco:</strong> <code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code> e <code>DELETE</code> em <code>contatos_emergencia</code>, sempre filtrando pelo <code>usuario_id</code> do token. Contato sem <code>consentido_em</code> não entra no envio do alerta.</p>
+            <p class="done"><b>Pronto quando:</b> testes cobrirem o bloqueio do quarto contato ativo, o isolamento entre pessoas usuárias (contato de outra pessoa retorna 404) e a ausência de telefone em logs.</p>
+            <div class="yume-decision"><strong>Decisão pendente da Yume</strong><p>Definir como o consentimento será registrado no MVP enquanto a página web de consentimento não existir.</p></div>
+          </article>
+        </div></div>
+      </section>
+
       <section class="epic sos" aria-labelledby="sos-title">
         <div class="epic-heading">
           <div><p class="eyebrow">ÉPICO 01 · BACKEND</p><h2 id="sos-title">Alerta S.O.S</h2><p>Implementar criação, persistência, despacho assíncrono, retentativas e rastreabilidade do alerta.</p></div>
@@ -118,16 +155,16 @@
           <article class="task">
             <div class="task-meta"><span>CONTRATO HTTP</span><span>SOS-01</span></div>
             <h4>Definir schemas e rota de criação</h4>
-            <p>Criar schemas Pydantic e OpenAPI para <code>POST /api/v1/sos/alertas</code> com latitude, longitude e mensagem opcional de até 255 caracteres. Obter o usuário exclusivamente do Bearer Token.</p>
+            <p>Criar schemas Pydantic e OpenAPI para <code>POST /api/v1/sos/alertas</code> com latitude, longitude e mensagem opcional de até 255 caracteres. Obter o usuário exclusivamente do Bearer Token (claim <code>sub</code>, Regra 09) e rejeitar qualquer identificador de usuário enviado no corpo (Regra 01).</p>
             <p><strong>Banco:</strong> não cria, lê ou atualiza tabelas nesta tarefa; somente define o contrato que será persistido em <code>alertas_sos</code>.</p>
-            <p class="done"><b>Pronto quando:</b> OpenAPI documentar corpos, respostas 201/401/422 e os testes aceitarem 255 caracteres e rejeitarem 256.</p>
+            <p class="done"><b>Pronto quando:</b> OpenAPI documentar corpos, respostas 201/401/422 e os testes aceitarem 255 caracteres, rejeitarem 256 e retornarem 401 para token ausente, expirado ou mal assinado.</p>
           </article>
 
           <article class="task">
             <div class="task-meta"><span>PERSISTÊNCIA</span><span>SOS-02</span></div>
             <h4>Criar migrações de usuários, contatos e alertas</h4>
             <p>Criar migrações Alembic para usuários, contatos de emergência e alertas. Usar UUID, timestamps com fuso horário, status de entrega e ponto geográfico SRID 4326; criar índice espacial no ponto.</p>
-            <p><strong>Banco:</strong> criar as tabelas <code>usuarios</code>, <code>contatos_emergencia</code>, <code>alertas_sos</code> e <code>tentativas_envio_sos</code>; criar FKs, índice GiST em <code>alertas_sos.localizacao</code> e índice por <code>alerta_id</code> nas tentativas.</p>
+            <p><strong>Banco:</strong> criar as tabelas <code>usuarios</code>, <code>contatos_emergencia</code>, <code>alertas_sos</code> e <code>tentativas_envio_sos</code>; criar FKs, índice GiST em <code>alertas_sos.localizacao</code> e índice por <code>alerta_id</code> nas tentativas. Em <code>usuarios</code>, incluir as colunas usadas pelo AUTH-01: <code>nome_completo</code>, <code>email</code> único, <code>senha_hash</code> e <code>telefone_pessoal</code>.</p>
             <p class="done"><b>Pronto quando:</b> as migrações sobem e descem em PostgreSQL/PostGIS e os relacionamentos são cobertos por teste de integração.</p>
             <div class="yume-decision"><strong>Decisão pendente da Yume</strong><p>Definir retenção e exclusão de alertas e coordenadas para que o schema inclua os campos necessários.</p></div>
           </article>
@@ -267,7 +304,7 @@
         <h2 id="sequence-title">Construir dados antes de integrações.</h2>
         <ol>
           <li><span>Semana 1</span> SOS-01/02 e MAP-01/02.</li>
-          <li><span>Semana 2</span> SOS-03/04/05 e MAP-03/04.</li>
+          <li><span>Semana 2</span> AUTH-01, CONT-01, SOS-03/04/05 e MAP-03/04.</li>
           <li><span>Semana 3</span> SOS-06/07 e MAP-05/06/07.</li>
           <li><span>Semana 4</span> SOS-08 e MAP-08; corrigir falhas de integração.</li>
         </ol>

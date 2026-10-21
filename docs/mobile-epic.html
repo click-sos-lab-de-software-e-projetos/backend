@@ -46,7 +46,7 @@
             <div class="task-meta"><span>SESSÃO E CONTRATO</span><span>SOSM-01</span></div>
             <h4>Integrar autenticação e cliente HTTP</h4>
             <p>Implementar o cliente Retrofit/OkHttp para os contratos aprovados de <code>/api/v1</code>, injetar o Bearer Token na sessão autenticada e modelar respostas de sucesso, autenticação e validação.</p>
-            <p><strong>Backend:</strong> consumir somente URLs por ambiente e contratos publicados; não registrar token, corpo de alerta ou coordenadas em logs.</p>
+            <p><strong>Backend:</strong> obter o token em <code>POST /api/v1/auth/login</code> (AUTH-01, Regra 09); consumir somente URLs por ambiente e contratos publicados; não registrar token, corpo de alerta ou coordenadas em logs.</p>
             <p class="done"><b>Pronto quando:</b> testes com servidor fake validarem cabeçalho Bearer, erros 401/422 e remoção da sessão ao encerrar login.</p>
           </article>
 
@@ -54,7 +54,7 @@
             <div class="task-meta"><span>CONTATOS</span><span>SOSM-02</span></div>
             <h4>Gerir contatos de emergência no aplicativo</h4>
             <p>Criar telas para listar, cadastrar, editar e remover contatos conforme o contrato backend. Limitar a três contatos ativos e informar que só entram no envio após consentimento confirmado.</p>
-            <p><strong>Backend:</strong> refletir os estados e validações retornados pelo recurso de contatos; não manter uma fonte de verdade local independente.</p>
+            <p><strong>Backend:</strong> consumir <code>/api/v1/contatos</code> (CONT-01, Regra 03) e refletir os estados e validações retornados; não manter uma fonte de verdade local independente.</p>
             <p class="done"><b>Pronto quando:</b> a interface bloquear o quarto contato ativo e explicar os estados de consentimento e erro da API.</p>
           </article>
 
