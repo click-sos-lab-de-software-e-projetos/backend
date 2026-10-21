@@ -1,21 +1,17 @@
-"""Contratos HTTP do alerta S.O.S."""
-
 from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-LIMITE_MENSAGEM = 255
+from app.constants import LIMITE_MENSAGEM_SOS
 
 MensagemLivre = Annotated[
-    str, StringConstraints(strip_whitespace=True, max_length=LIMITE_MENSAGEM)
+    str, StringConstraints(strip_whitespace=True, max_length=LIMITE_MENSAGEM_SOS)
 ]
 
 
 class CriarAlertaRequisicao(BaseModel):
-    """Corpo enviado pelo app. Não aceita identificador de usuário (Regra 01)."""
-
     model_config = ConfigDict(
         extra="forbid",
         json_schema_extra={
@@ -32,8 +28,6 @@ class CriarAlertaRequisicao(BaseModel):
 
 
 class AlertaCriadoResposta(BaseModel):
-    """Confirma a criação. Não ecoa coordenadas, por privacidade."""
-
     id: UUID
     status_envio: Literal["PENDENTE"]
     criado_em: datetime

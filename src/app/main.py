@@ -2,15 +2,11 @@
 
 from fastapi import FastAPI
 
-from app.api.v1 import sos
-
 app = FastAPI(
     title="Click S.O.S API",
     version="0.1.0",
     description="Estrutura inicial; recursos de negócio ainda não foram implementados.",
 )
-
-app.include_router(sos.router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["operacional"])

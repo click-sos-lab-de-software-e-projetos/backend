@@ -1,7 +1,7 @@
 from app.main import app, health_check
 
 
-def test_health_check_returns_ok() -> None:
+def health_check_quando_chamado_deve_responder_status_ok() -> None:
     health_route = next(
         route for route in app.routes if getattr(route, "path", None) == "/health"
     )

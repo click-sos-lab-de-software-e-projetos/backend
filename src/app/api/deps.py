@@ -1,5 +1,3 @@
-"""Dependências compartilhadas das rotas."""
-
 import os
 from typing import Annotated
 from uuid import UUID
@@ -9,7 +7,6 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.security import TokenInvalido, extrair_usuario_id
 
-# auto_error=False: nós decidimos o status (401), não o FastAPI.
 esquema_bearer = HTTPBearer(auto_error=False)
 
 
