@@ -28,6 +28,9 @@ dev = [
 testpaths = ["tests"]
 pythonpath = ["src"]
 python_functions = ["*_deve_*"]
+markers = [
+  "integracao: exige PostgreSQL/PostGIS em TEST_DATABASE_URL",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
