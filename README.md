@@ -1,6 +1,6 @@
 # Click S.O.S — Backend
 
-Base técnica inicial do backend do Click S.O.S. Neste estágio existe apenas uma API FastAPI mínima para verificar que o ambiente está funcionando. Não há autenticação, banco de dados, geolocalização, integração com WhatsApp, mapa ou fluxo S.O.S implementados.
+Base técnica inicial do backend do Click S.O.S. Neste estágio existem a autenticação Bearer (SOS-01) e as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02). Ainda não há rotas de negócio, integração com WhatsApp ou mapa.
 
 ## Requisitos
 
@@ -40,6 +40,34 @@ pre-commit install
 ```
 
 Depois de instalado, o hook executa todos os testes Python antes de cada commit.
+
+### Testes de integração (PostgreSQL/PostGIS)
+
+Os testes em `tests/integracao/` rodam as migrações contra um PostGIS real e **apagam todas as tabelas** do banco usado. Sem `TEST_DATABASE_URL` eles são pulados, então o pre-commit continua funcionando sem banco. A suíte se recusa a rodar se `TEST_DATABASE_URL` for igual a `DATABASE_URL`.
+
+```bash
+docker run -d --name click-sos-test-db -p 5433:5432 \
+  -e POSTGRES_DB=click_sos_test -e POSTGRES_USER=teste -e POSTGRES_PASSWORD=teste \
+  postgis/postgis:16-3.4
+
+# no .env local; de dentro do Dev Container use host.docker.internal no lugar de localhost
+TEST_DATABASE_URL=postgresql+psycopg://teste:teste@localhost:5433/click_sos_test
+
+pytest -m integracao
+```
+
+Use apenas dados fictícios nos testes: e-mails `@example.com`, telefones com DDD `00` e coordenadas sem significado.
+
+### Migrações
+
+A URL do banco vem de `DATABASE_URL`; o `alembic.ini` não guarda URL.
+
+```bash
+alembic upgrade head        # aplica todas as migrações
+alembic downgrade base      # desfaz todas
+alembic upgrade head --sql  # mostra o SQL sem executar
+alembic check               # confirma que os modelos em src/app/db/models.py batem com as migrações
+```
 
 ## Variáveis de ambiente
 

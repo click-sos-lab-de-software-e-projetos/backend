@@ -31,7 +31,7 @@ Armazena documentos técnicos do backend, como este guia. Não deve conter segre
 
 ### `migrations/`
 
-Reservada para migrações de banco de dados, que serão criadas futuramente com Alembic. As migrações registrarão mudanças estruturais no PostgreSQL/PostGIS de forma versionada.
+Migrações Alembic do PostgreSQL/PostGIS, em `migrations/versions/`, numeradas em sequência (`0001`, `0002`...). O `env.py` lê a URL de `DATABASE_URL` e usa os modelos de `src/app/db/models.py` como referência do autogenerate. Cada revisão precisa ter `upgrade` e `downgrade`; os testes de integração verificam a subida e a descida de todas.
 
 ### `scripts/`
 
@@ -57,7 +57,7 @@ Centralizará configurações transversais: leitura de variáveis de ambiente, s
 
 ### `db/`
 
-Receberá a configuração de conexão com PostgreSQL/PostGIS, modelos de persistência e sessões de banco de dados. Nenhuma conexão real com Neon foi implementada ainda.
+Configuração e modelos do PostgreSQL/PostGIS: `config.py` lê `DATABASE_URL`, `base.py` define a base declarativa e `models.py` mapeia `usuarios`, `contatos_emergencia`, `alertas_sos` e `tentativas_envio_sos`. As sessões de banco usadas pelas rotas chegam com o SOS-03.
 
 ### `schemas/`
 
