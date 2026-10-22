@@ -33,3 +33,26 @@ def tabelas(engine: Engine) -> set[str]:
                 )
             ).scalars()
         )
+
+
+def restricoes(engine: Engine, tabela: str) -> set[tuple[str, str]]:
+    with engine.connect() as conexao:
+        linhas = conexao.execute(
+            text(
+                "SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint "
+                "WHERE conrelid = to_regclass(:tabela)"
+            ),
+            {"tabela": tabela},
+        )
+        return {(nome, definicao) for nome, definicao in linhas}
+
+
+def retrato_do_schema(engine: Engine, nomes: list[str]) -> dict:
+    return {
+        tabela: {
+            "colunas": colunas(engine, tabela),
+            "indices": sorted(definicoes_de_indices(engine, tabela)),
+            "restricoes": restricoes(engine, tabela),
+        }
+        for tabela in nomes
+    }
