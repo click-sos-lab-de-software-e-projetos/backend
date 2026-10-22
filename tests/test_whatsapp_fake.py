@@ -2,6 +2,7 @@
 
 import asyncio
 
+from app.services import whatsapp
 from app.services.whatsapp import ClienteWhatsAppFake, ResultadoEnvio
 
 TELEFONE = "+5511900000000"  # fictício
@@ -33,13 +34,29 @@ def fake_com_roteiro_deve_devolver_as_respostas_na_ordem():
     assert asyncio.run(enviar_duas_vezes()) == [ResultadoEnvio.falha("TIMEOUT"), ResultadoEnvio.ok()]
 
 
-def fake_lento_deve_esperar_antes_de_responder():
+def fake_lento_deve_esperar_o_atraso_configurado_antes_de_responder(monkeypatch):
+    # Confere o pedido de espera em vez de cronometrar: no Windows o relógio do
+    # asyncio anda em saltos de ~15 ms e uma espera de 50 ms chega a medir 47 ms.
+    esperas = []
+
+    async def dormir(segundos):
+        esperas.append(segundos)
+
+    monkeypatch.setattr(whatsapp.asyncio, "sleep", dormir)
     fake = ClienteWhatsAppFake(atraso_segundos=0.05)
 
-    async def medir():
-        loop = asyncio.get_running_loop()
-        inicio = loop.time()
-        await fake.enviar_texto(TELEFONE, "texto")
-        return loop.time() - inicio
+    assert asyncio.run(fake.enviar_texto(TELEFONE, "texto")) == ResultadoEnvio.ok()
+    assert esperas == [0.05]
 
-    assert asyncio.run(medir()) >= 0.05
+
+def fake_sem_atraso_nao_deve_esperar(monkeypatch):
+    esperas = []
+
+    async def dormir(segundos):
+        esperas.append(segundos)
+
+    monkeypatch.setattr(whatsapp.asyncio, "sleep", dormir)
+
+    asyncio.run(ClienteWhatsAppFake().enviar_texto(TELEFONE, "texto"))
+
+    assert esperas == []
