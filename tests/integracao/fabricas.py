@@ -41,3 +41,25 @@ def inserir_contato(conexao: Connection, usuario_id, **sobrescritas) -> Row:
         ),
         dados,
     ).one()
+
+
+def inserir_alerta(
+    conexao: Connection,
+    usuario_id,
+    latitude: float = 0.25,
+    longitude: float = 0.75,
+    srid: int = 4326,
+    **sobrescritas,
+) -> Row:
+    dados = {"usuario_id": usuario_id, **sobrescritas}
+    colunas = ", ".join(["localizacao", *dados])
+    valores = ", ".join(
+        ["ST_SetSRID(ST_MakePoint(:longitude, :latitude), :srid)", *(f":{c}" for c in dados)]
+    )
+    return conexao.execute(
+        text(
+            f"INSERT INTO alertas_sos ({colunas}) VALUES ({valores}) "
+            "RETURNING id, status_envio, tentativas, mensagem, criado_em"
+        ),
+        {**dados, "latitude": latitude, "longitude": longitude, "srid": srid},
+    ).one()
