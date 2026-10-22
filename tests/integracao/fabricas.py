@@ -22,3 +22,22 @@ def inserir_usuario(conexao: Connection, **sobrescritas) -> Row:
         ),
         dados,
     ).one()
+
+
+def inserir_contato(conexao: Connection, usuario_id, **sobrescritas) -> Row:
+    n = next(_sequencia)
+    dados = {
+        "usuario_id": usuario_id,
+        "nome": f"Contato Ficticio {n}",
+        "telefone_whatsapp": f"+55008{n:08d}",
+        **sobrescritas,
+    }
+    colunas = ", ".join(dados)
+    valores = ", ".join(f":{coluna}" for coluna in dados)
+    return conexao.execute(
+        text(
+            f"INSERT INTO contatos_emergencia ({colunas}) VALUES ({valores}) "
+            "RETURNING id, ativo, consentido_em"
+        ),
+        dados,
+    ).one()
