@@ -35,6 +35,16 @@ class ClienteEvolution:
             raise ValueError("telefone precisa estar no formato E.164")
         # A Evolution API espera o número sem o "+".
         corpo = {"number": telefone_e164.removeprefix("+"), "text": texto}
-        async with httpx.AsyncClient(timeout=self._timeout, transport=self._transporte) as http:
-            await http.post(self._url_envio, json=corpo, headers={"apikey": self._chave})
-        return ResultadoEnvio.ok()
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout, transport=self._transporte) as http:
+                resposta = await http.post(
+                    self._url_envio, json=corpo, headers={"apikey": self._chave}
+                )
+        except httpx.TimeoutException:
+            return ResultadoEnvio.falha("TIMEOUT")
+        except httpx.TransportError:
+            return ResultadoEnvio.falha("CONEXAO")
+        # Só o status: o corpo da resposta pode ecoar número e texto.
+        if resposta.is_success:
+            return ResultadoEnvio.ok()
+        return ResultadoEnvio.falha(f"HTTP_{resposta.status_code}")

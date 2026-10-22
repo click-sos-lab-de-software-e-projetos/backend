@@ -83,3 +83,35 @@ def telefone_fora_do_e164_deve_ser_rejeitado_antes_de_chamar_a_api(telefone):
     with pytest.raises(ValueError, match="E.164"):
         asyncio.run(_cliente(responder).enviar_texto(telefone, TEXTO))
     assert chamadas == []
+
+
+@pytest.mark.parametrize("excecao", [httpx.ReadTimeout, httpx.ConnectTimeout, httpx.WriteTimeout])
+def tempo_esgotado_deve_virar_falha_timeout(excecao):
+    def responder(requisicao):
+        raise excecao("tempo esgotado", request=requisicao)
+
+    assert _enviar(responder) == ResultadoEnvio.falha("TIMEOUT")
+
+
+def falha_de_conexao_deve_virar_falha_conexao():
+    def responder(requisicao):
+        raise httpx.ConnectError("recusada", request=requisicao)
+
+    assert _enviar(responder) == ResultadoEnvio.falha("CONEXAO")
+
+
+@pytest.mark.parametrize("status", [400, 401, 404, 500, 503])
+def resposta_de_erro_http_deve_virar_falha_com_o_status(status):
+    assert _enviar(lambda requisicao: httpx.Response(status)) == ResultadoEnvio.falha(f"HTTP_{status}")
+
+
+def cliente_deve_aplicar_o_timeout_padrao_de_3_segundos():
+    timeouts = []
+
+    def responder(requisicao):
+        timeouts.append(requisicao.extensions["timeout"])
+        return httpx.Response(200)
+
+    _enviar(responder)
+
+    assert timeouts == [{"connect": 3.0, "read": 3.0, "write": 3.0, "pool": 3.0}]
