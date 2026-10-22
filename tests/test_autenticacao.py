@@ -8,6 +8,7 @@ from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
 from app.api.deps import obter_segredo_jwt, obter_usuario_id
+from app.constants import NOME_VARIAVEL_SEGREDO_JWT
 
 SEGREDO_TESTE = "segredo-apenas-para-testes-com-32-bytes"
 USUARIO_ID = uuid4()
@@ -69,3 +70,23 @@ def obter_usuario_id_com_token_sem_sub_deve_responder_401(client):
 def obter_usuario_id_com_sub_que_nao_e_uuid_deve_responder_401(client):
     token = gerar_token({"sub": "nao-e-uuid", "exp": int(time.time()) + 300})
     assert requisitar(client, token).status_code == 401
+
+
+def obter_segredo_jwt_com_variavel_definida_deve_retornar_o_valor(monkeypatch):
+    monkeypatch.setenv(NOME_VARIAVEL_SEGREDO_JWT, SEGREDO_TESTE)
+    assert obter_segredo_jwt() == SEGREDO_TESTE
+
+
+def obter_segredo_jwt_sem_variavel_deve_lancar_erro(monkeypatch):
+    monkeypatch.delenv(NOME_VARIAVEL_SEGREDO_JWT, raising=False)
+    with pytest.raises(RuntimeError):
+        obter_segredo_jwt()
+
+
+def obter_usuario_id_com_segredo_do_ambiente_deve_aceitar_token_assinado_com_ele(
+    monkeypatch,
+):
+    monkeypatch.setenv(NOME_VARIAVEL_SEGREDO_JWT, SEGREDO_TESTE)
+    resposta = requisitar(TestClient(app_teste), gerar_token(payload_valido()))
+    assert resposta.status_code == 200
+    assert resposta.json() == {"usuario_id": str(USUARIO_ID)}

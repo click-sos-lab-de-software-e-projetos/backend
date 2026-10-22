@@ -5,15 +5,16 @@ from uuid import UUID
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.constants import NOME_VARIAVEL_SEGREDO_JWT
 from app.core.security import TokenInvalido, extrair_usuario_id
 
 esquema_bearer = HTTPBearer(auto_error=False)
 
 
 def obter_segredo_jwt() -> str:
-    segredo = os.environ.get("JWT_SECRET_KEY")
+    segredo = os.environ.get(NOME_VARIAVEL_SEGREDO_JWT)
     if not segredo:
-        raise RuntimeError("JWT_SECRET_KEY não configurada.")
+        raise RuntimeError(f"{NOME_VARIAVEL_SEGREDO_JWT} não configurada.")
     return segredo
 
 
