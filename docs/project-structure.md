@@ -1,6 +1,6 @@
 # Estrutura do projeto
 
-Este documento descreve a organização atual do backend do Click S.O.S. O projeto ainda é um scaffold: as pastas indicam onde cada responsabilidade será implementada, mas não contêm regras de negócio prontas.
+Este documento descreve a organização atual do backend do Click S.O.S. As pastas indicam onde cada responsabilidade é implementada; algumas ainda estão vazias, à espera dos próximos tickets.
 
 ```text
 backend/
@@ -35,7 +35,7 @@ Migrações Alembic do PostgreSQL/PostGIS, em `migrations/versions/`, numeradas 
 
 ### `scripts/`
 
-Contém scripts operacionais usados pela equipe. Atualmente, `fetch-env.sh` baixa o arquivo `.env` somente quando uma URL segura for fornecida por meio de `NEON_ENV_URL`.
+Contém scripts operacionais usados pela equipe. `fetch-env.sh` baixa o arquivo `.env` somente quando uma URL segura for fornecida por meio de `NEON_ENV_URL`. `token_dev.py` cria uma pessoa usuária fictícia num banco local e imprime um JWT para testar as rotas privadas no Swagger; é um paliativo até o AUTH-01.
 
 ### `src/`
 
@@ -49,7 +49,7 @@ Contém os testes automatizados Python. O pre-commit executa toda esta suíte us
 
 ### `api/`
 
-Receberá as rotas HTTP versionadas da API, dependências de rota e controladores. Futuramente poderá conter, por exemplo, endpoints de autenticação, contatos, alertas S.O.S e regiões do mapa.
+Rotas HTTP e dependências de rota. `deps.py` obtém a pessoa usuária do Bearer Token (SOS-01). As rotas versionadas ficam em `v1/`, um módulo por recurso: hoje, `v1/contatos.py` (CONT-01). As rotas só traduzem HTTP: validam a entrada pelos schemas, delegam para `services/` e convertem as exceções do serviço em códigos de status.
 
 ### `core/`
 
@@ -57,7 +57,7 @@ Centralizará configurações transversais: leitura de variáveis de ambiente, s
 
 ### `db/`
 
-Configuração e modelos do PostgreSQL/PostGIS: `config.py` lê `DATABASE_URL`, `base.py` define a base declarativa e `models.py` mapeia `usuarios`, `contatos_emergencia`, `alertas_sos` e `tentativas_envio_sos`. As sessões de banco usadas pelas rotas chegam com o SOS-03.
+Configuração e modelos do PostgreSQL/PostGIS: `config.py` lê `DATABASE_URL`, `base.py` define a base declarativa e `models.py` mapeia `usuarios`, `contatos_emergencia`, `alertas_sos` e `tentativas_envio_sos`. `sessao.py` fornece a dependência `obter_sessao` (uma sessão por requisição) e cria o engine com `hide_parameters`, para que telefones e coordenadas não apareçam em logs nem em mensagens de erro do banco.
 
 ### `schemas/`
 
@@ -65,7 +65,7 @@ Conterá os modelos Pydantic que definem os dados recebidos e enviados pela API.
 
 ### `services/`
 
-Receberá as regras de negócio. Exemplos futuros incluem gestão de contatos de emergência, criação de alertas e cálculo de risco de uma região. Rotas HTTP devem delegar a lógica para esta camada em vez de concentrá-la em `api/`.
+Regras de negócio. `contatos.py` implementa o CONT-01: isolamento por `usuario_id` e limite de contatos ativos, com trava `FOR UPDATE` em `usuarios`. Próximos serviços: criação de alertas e cálculo de risco de uma região. Rotas HTTP devem delegar a lógica para esta camada em vez de concentrá-la em `api/`.
 
 ### `workers/`
 
@@ -73,7 +73,7 @@ Reservada para tarefas executadas fora da resposta HTTP, como despacho do alerta
 
 ### `main.py`
 
-É o ponto de entrada da aplicação FastAPI. Por enquanto, disponibiliza apenas `GET /health`, usado para verificar que o serviço iniciou corretamente.
+É o ponto de entrada da aplicação FastAPI. Registra os routers de `api/v1/` e disponibiliza `GET /health`, usado para verificar que o serviço iniciou corretamente.
 
 ## Arquivos importantes na raiz
 

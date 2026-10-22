@@ -1,12 +1,16 @@
-"""Ponto de entrada provisório da API FastAPI."""
+"""Ponto de entrada da API FastAPI."""
 
 from fastapi import FastAPI
+
+from app.api.v1 import contatos
 
 app = FastAPI(
     title="Click S.O.S API",
     version="0.1.0",
-    description="Estrutura inicial; recursos de negócio ainda não foram implementados.",
+    description="API do Click S.O.S. Rotas privadas exigem `Authorization: Bearer <JWT>`.",
 )
+
+app.include_router(contatos.router)
 
 
 @app.get("/health", tags=["operacional"])
