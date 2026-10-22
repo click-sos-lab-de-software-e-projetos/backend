@@ -3,6 +3,8 @@
 Dados fictícios: nenhuma pessoa, telefone ou coordenada real.
 """
 
+import logging
+import math
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -67,3 +69,48 @@ def texto_deve_trazer_titulo_coordenadas_e_mensagem_nessa_ordem():
         "Coordenadas: -23.550000, -46.633000\n\n"
         "Estou na saída do metrô."
     )
+
+
+def coordenada_quase_zero_nao_deve_virar_zero_negativo():
+    assert _montar(latitude=-0.0000001, longitude=-0.0).coordenadas == "0.000000, 0.000000"
+
+
+def nome_usuario_deve_entrar_no_titulo_sem_espacos_nas_pontas():
+    assert _montar(nome_usuario="  Pessoa Exemplo ").titulo.startswith("Pessoa Exemplo acionou")
+
+
+@pytest.mark.parametrize("nome", ["", "   "])
+def nome_usuario_vazio_deve_ser_rejeitado(nome):
+    with pytest.raises(ValueError, match="nome_usuario"):
+        _montar(nome_usuario=nome)
+
+
+@pytest.mark.parametrize(
+    ("campo", "valor"),
+    [
+        ("latitude", 90.1),
+        ("latitude", -90.1),
+        ("longitude", 180.1),
+        ("longitude", -180.1),
+        ("latitude", math.nan),
+        ("longitude", math.inf),
+    ],
+)
+def coordenada_invalida_deve_ser_rejeitada(campo, valor):
+    with pytest.raises(ValueError, match=campo):
+        _montar(**{campo: valor})
+
+
+def repr_da_mensagem_nao_deve_expor_nome_nem_coordenadas():
+    representacao = repr(_montar(mensagem="Estou na saída do metrô."))
+
+    for dado in (NOME, "23.55", "46.633", "metrô"):
+        assert dado not in representacao
+
+
+def montar_mensagem_nao_deve_escrever_em_log(caplog):
+    caplog.set_level(logging.DEBUG)
+
+    _montar()
+
+    assert caplog.records == []
