@@ -5,6 +5,9 @@ Dados fictícios: nenhuma pessoa, telefone ou coordenada real.
 
 from urllib.parse import parse_qs, urlparse
 
+import pytest
+
+from app.constants import MENSAGEM_PADRAO_SOS
 from app.services.mensagem_sos import montar_mensagem_emergencia
 
 NOME = "Pessoa Exemplo"
@@ -33,4 +36,34 @@ def titulo_deve_seguir_o_modelo_da_regra_02():
 
     assert mensagem.titulo == (
         f"{NOME} acionou o botão do Click S.O.S. nas coordenadas: {mensagem.link_google_maps}"
+    )
+
+
+def mensagem_padrao_deve_ser_o_texto_da_regra_02():
+    assert MENSAGEM_PADRAO_SOS == (
+        "Olá, por favor, com urgência, verifique se está tudo bem comigo. "
+        "Minha localização é a informada acima."
+    )
+
+
+@pytest.mark.parametrize("vazia", [None, "", "   ", "\n\t"])
+def mensagem_livre_vazia_deve_usar_a_mensagem_padrao(vazia):
+    assert _montar(mensagem=vazia).mensagem == MENSAGEM_PADRAO_SOS
+
+
+def mensagem_livre_preenchida_deve_ser_usada_sem_espacos_nas_pontas():
+    assert _montar(mensagem="  Estou na saída do metrô.  ").mensagem == "Estou na saída do metrô."
+
+
+def coordenadas_devem_vir_legiveis_na_mensagem():
+    assert _montar().coordenadas == "-23.550000, -46.633000"
+
+
+def texto_deve_trazer_titulo_coordenadas_e_mensagem_nessa_ordem():
+    mensagem = _montar(mensagem="Estou na saída do metrô.")
+
+    assert mensagem.texto == (
+        f"{mensagem.titulo}\n\n"
+        "Coordenadas: -23.550000, -46.633000\n\n"
+        "Estou na saída do metrô."
     )
