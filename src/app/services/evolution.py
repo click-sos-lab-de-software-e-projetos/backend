@@ -4,10 +4,13 @@ Faz uma única tentativa por chamada; retentativas são do SOS-07. Não escreve
 em log: chave, telefone e texto nunca saem daqui.
 """
 
+import os
 import re
+from collections.abc import Mapping
 
 import httpx
 
+from app.constants import NOMES_VARIAVEIS_EVOLUTION
 from app.services.whatsapp import ResultadoEnvio
 
 # Mesmo padrão do CHECK ck_contatos_telefone_e164 (migração 0003). Quando o
@@ -29,6 +32,20 @@ class ClienteEvolution:
         self._chave = chave
         self._timeout = timeout_segundos
         self._transporte = transporte
+
+    @classmethod
+    def do_ambiente(
+        cls,
+        ambiente: Mapping[str, str] = os.environ,
+        transporte: httpx.AsyncBaseTransport | None = None,
+    ) -> "ClienteEvolution":
+        valores = {nome: (ambiente.get(nome) or "").strip() for nome in NOMES_VARIAVEIS_EVOLUTION}
+        ausentes = [nome for nome, valor in valores.items() if not valor]
+        if ausentes:
+            # Cita só os nomes; valores (URL, chave) nunca entram na mensagem.
+            raise RuntimeError(f"variáveis de ambiente ausentes: {', '.join(ausentes)}")
+        url, chave, instancia = valores.values()
+        return cls(url_base=url, chave=chave, instancia=instancia, transporte=transporte)
 
     async def enviar_texto(self, telefone_e164: str, texto: str) -> ResultadoEnvio:
         if not _PADRAO_E164.fullmatch(telefone_e164):

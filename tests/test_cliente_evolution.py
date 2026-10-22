@@ -4,6 +4,7 @@ URL, chave, instância e telefone são fictícios.
 """
 
 import asyncio
+import logging
 import json
 
 import httpx
@@ -115,3 +116,54 @@ def cliente_deve_aplicar_o_timeout_padrao_de_3_segundos():
     _enviar(responder)
 
     assert timeouts == [{"connect": 3.0, "read": 3.0, "write": 3.0, "pool": 3.0}]
+
+
+AMBIENTE_COMPLETO = {
+    "EVOLUTION_API_URL": URL_BASE,
+    "EVOLUTION_API_KEY": CHAVE,
+    "EVOLUTION_INSTANCE": INSTANCIA,
+}
+
+
+def cliente_do_ambiente_deve_usar_url_chave_e_instancia_das_variaveis():
+    requisicoes = []
+
+    def responder(requisicao):
+        requisicoes.append(requisicao)
+        return httpx.Response(200)
+
+    cliente = ClienteEvolution.do_ambiente(AMBIENTE_COMPLETO, transporte=httpx.MockTransport(responder))
+    asyncio.run(cliente.enviar_texto(TELEFONE, TEXTO))
+
+    assert str(requisicoes[0].url) == f"{URL_BASE}/message/sendText/{INSTANCIA}"
+    assert requisicoes[0].headers["apikey"] == CHAVE
+
+
+@pytest.mark.parametrize("variavel", sorted(AMBIENTE_COMPLETO))
+@pytest.mark.parametrize("valor", [None, "", "   "])
+def cliente_do_ambiente_sem_variavel_deve_falhar_citando_so_o_nome(variavel, valor):
+    ambiente = {k: v for k, v in AMBIENTE_COMPLETO.items() if k != variavel}
+    if valor is not None:
+        ambiente[variavel] = valor
+
+    with pytest.raises(RuntimeError, match=variavel) as erro:
+        ClienteEvolution.do_ambiente(ambiente)
+
+    for segredo in (CHAVE, URL_BASE):
+        assert segredo not in str(erro.value)
+
+
+def repr_do_cliente_nao_deve_expor_a_chave():
+    assert CHAVE not in repr(_cliente(lambda requisicao: httpx.Response(200)))
+
+
+@pytest.mark.parametrize("status", [201, 500])
+def envio_nao_deve_levar_chave_telefone_nem_texto_para_o_log(caplog, status):
+    caplog.set_level(logging.DEBUG)
+
+    _enviar(lambda requisicao: httpx.Response(status, text=f"eco {TELEFONE} {TEXTO}"))
+
+    registros = caplog.text
+    assert "HTTP Request" in registros  # o httpx registra a chamada; o teste não passa no vazio
+    for dado in (CHAVE, TELEFONE.removeprefix("+"), TEXTO):
+        assert dado not in registros
