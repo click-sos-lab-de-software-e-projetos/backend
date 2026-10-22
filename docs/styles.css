@@ -57,7 +57,7 @@ a { color: #155eef; font-weight: 700; }.back-link { margin: 24px 0 0; }.rules-he
 
 .data-models { padding: 20px 48px 52px; }.model-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; max-width: 1280px; margin: auto; }.model-card { overflow: hidden; border: 1px solid #d0d5dd; border-radius: 14px; background: #182230; }.model-card h3 { margin: 0; padding: 14px 18px; color: #d0e5ff; border-bottom: 1px solid #344054; font: 800 .78rem/1.2 "SFMono-Regular", Consolas, monospace; letter-spacing: .06em; }.model-card pre { margin: 0; padding: 18px; overflow-x: auto; color: #d0d5dd; font: .78rem/1.5 "SFMono-Regular", Consolas, monospace; }
 
-.epic { margin: 16px 32px 54px; padding: 40px 16px 18px; border-radius: 24px; }.epic.sos { background: var(--sos-soft); }.epic.map { background: var(--map-soft); }
+.epic { margin: 16px 32px 54px; padding: 40px 16px 18px; border-radius: 24px; }.epic.sos { background: var(--sos-soft); }.epic.foundation { background: #f4f3ff; }.epic.map { background: var(--map-soft); }
 .epic-heading { display: flex; justify-content: space-between; gap: 32px; align-items: flex-start; max-width: 1280px; margin: 0 auto 28px; padding: 0 16px; }.epic-heading > div:first-child { max-width: 740px; }.epic-heading h2 { margin-bottom: 10px; }.epic-heading > div:first-child > p:last-child { color: #475467; }
 .success { flex: 0 1 340px; padding: 16px; border: 1px solid #abefc6; border-radius: 13px; background: #ecfdf3; color: #05603a; font-size: .85rem; }.success strong, .success span { display: block; }.success span { margin-top: 4px; }
 
