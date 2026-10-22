@@ -1,6 +1,6 @@
 # Click S.O.S — Backend
 
-Base técnica inicial do backend do Click S.O.S. Neste estágio existem a autenticação Bearer (SOS-01) e as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02). Ainda não há rotas de negócio, integração com WhatsApp ou mapa.
+Base técnica inicial do backend do Click S.O.S. Neste estágio existem a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) e o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01). Ainda não há cadastro/login (AUTH-01), rota de alerta, integração com WhatsApp ou mapa.
 
 ## Requisitos
 
@@ -30,7 +30,52 @@ pip install -e '.[dev]'
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Com a aplicação iniciada, consulte `http://localhost:8000/health`. A documentação automática está em `http://localhost:8000/docs`.
+Com a aplicação iniciada, consulte `http://localhost:8000/health`. A documentação automática está em `http://localhost:8000/docs` (Swagger) e `http://localhost:8000/redoc`.
+
+## Testar as rotas privadas no Swagger
+
+As rotas de `/api/v1/contatos` exigem um banco migrado e um JWT. Enquanto o AUTH-01 não existir, o token vem de `scripts/token_dev.py`, que cria uma pessoa usuária fictícia e imprime um token dela.
+
+1. **Suba um PostGIS de desenvolvimento**, separado do banco de testes (que é apagado a cada execução):
+
+   ```bash
+   docker run -d --name click-sos-dev-db -p 5432:5432 \
+     -e POSTGRES_DB=click_sos -e POSTGRES_USER=dev -e POSTGRES_PASSWORD=dev \
+     postgis/postgis:16-3.4
+   ```
+
+2. **Preencha o `.env`** (de dentro do Dev Container, troque `localhost` por `host.docker.internal`):
+
+   ```dotenv
+   DATABASE_URL=postgresql+psycopg://dev:dev@localhost:5432/click_sos
+   JWT_SECRET_KEY=<gere com: python -c "import secrets; print(secrets.token_urlsafe(32))">
+   ```
+
+3. **Carregue o `.env` no terminal.** O Alembic, o pytest e o script leem só variáveis de ambiente, não o arquivo:
+
+   ```powershell
+   # Windows (PowerShell)
+   Get-Content .env | Where-Object { $_ -match '^[A-Z_]+=.' } | ForEach-Object { $n, $v = $_ -split '=', 2; Set-Item "env:$n" $v }
+   ```
+
+   ```bash
+   # Linux/macOS/Dev Container
+   set -a; source .env; set +a
+   ```
+
+4. **Migre, gere o token e suba a API:**
+
+   ```bash
+   alembic upgrade head
+   python scripts/token_dev.py          # imprime o token; guarde-o
+   uvicorn app.main:app --reload --port 8000
+   ```
+
+   Para reaproveitar a mesma pessoa depois: `python scripts/token_dev.py --usuario-id <uuid>`. O UUID é exibido quando ela é criada. O script recusa bancos fora da sua máquina para não criar pessoas fictícias no banco da equipe.
+
+5. **No Swagger** (`http://localhost:8000/docs`), clique em **Authorize**, cole o token (sem a palavra `Bearer`) e use **Try it out** nas rotas de contatos.
+
+Comportamentos esperados: o quarto contato ativo responde `409`; o contato de outra pessoa responde `404`; sem token, `401`. Use só telefones fictícios (DDD `00`), mesmo no banco local.
 
 ## Testes e pre-commit
 
