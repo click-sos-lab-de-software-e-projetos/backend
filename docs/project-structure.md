@@ -49,7 +49,7 @@ Contém os testes automatizados Python. O pre-commit executa toda esta suíte us
 
 ### `api/`
 
-Rotas HTTP e dependências de rota. `deps.py` obtém a pessoa usuária do Bearer Token (SOS-01). As rotas versionadas ficam em `v1/`, um módulo por recurso: hoje, `v1/contatos.py` (CONT-01). As rotas só traduzem HTTP: validam a entrada pelos schemas, delegam para `services/` e convertem as exceções do serviço em códigos de status.
+Rotas HTTP e dependências de rota. `deps.py` obtém a pessoa usuária do Bearer Token (SOS-01). As rotas versionadas ficam em `v1/`, um módulo por recurso: hoje, `v1/contatos.py` (CONT-01) e `v1/sos.py` (SOS-03). As rotas só traduzem HTTP: validam a entrada pelos schemas, delegam para `services/` e convertem as exceções do serviço em códigos de status.
 
 ### `core/`
 
@@ -65,7 +65,7 @@ Conterá os modelos Pydantic que definem os dados recebidos e enviados pela API.
 
 ### `services/`
 
-Regras de negócio. `contatos.py` implementa o CONT-01: isolamento por `usuario_id` e limite de contatos ativos, com trava `FOR UPDATE` em `usuarios`. Próximos serviços: criação de alertas e cálculo de risco de uma região. Rotas HTTP devem delegar a lógica para esta camada em vez de concentrá-la em `api/`.
+Regras de negócio. `contatos.py` implementa o CONT-01: isolamento por `usuario_id` e limite de contatos ativos, com trava `FOR UPDATE` em `usuarios`. `alertas.py` implementa o SOS-03: exige ao menos um contato ativo com consentimento e grava o alerta como `PENDENTE`, sem chamar serviços externos. Próximo serviço: cálculo de risco de uma região. Rotas HTTP devem delegar a lógica para esta camada em vez de concentrá-la em `api/`.
 
 ### `workers/`
 

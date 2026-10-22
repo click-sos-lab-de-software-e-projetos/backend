@@ -1,6 +1,6 @@
 # Click S.O.S — Backend
 
-Base técnica inicial do backend do Click S.O.S. Neste estágio existem a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) e o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01). Ainda não há cadastro/login (AUTH-01), rota de alerta, integração com WhatsApp ou mapa.
+Base técnica inicial do backend do Click S.O.S. Neste estágio existem a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01) e a criação do alerta em `POST /api/v1/sos/alertas` (SOS-03), que grava o alerta como `PENDENTE`. Ainda não há cadastro/login (AUTH-01), envio por WhatsApp ou mapa.
 
 ## Requisitos
 
@@ -34,7 +34,7 @@ Com a aplicação iniciada, consulte `http://localhost:8000/health`. A documenta
 
 ## Testar as rotas privadas no Swagger
 
-As rotas de `/api/v1/contatos` exigem um banco migrado e um JWT. Enquanto o AUTH-01 não existir, o token vem de `scripts/token_dev.py`, que cria uma pessoa usuária fictícia e imprime um token dela.
+As rotas de `/api/v1/contatos` e `/api/v1/sos/alertas` exigem um banco migrado e um JWT. Enquanto o AUTH-01 não existir, o token vem de `scripts/token_dev.py`, que cria uma pessoa usuária fictícia e imprime um token dela.
 
 1. **Suba um PostGIS de desenvolvimento**, separado do banco de testes (que é apagado a cada execução):
 
@@ -76,6 +76,15 @@ As rotas de `/api/v1/contatos` exigem um banco migrado e um JWT. Enquanto o AUTH
 5. **No Swagger** (`http://localhost:8000/docs`), clique em **Authorize**, cole o token (sem a palavra `Bearer`) e use **Try it out** nas rotas de contatos.
 
 Comportamentos esperados: o quarto contato ativo responde `409`; o contato de outra pessoa responde `404`; sem token, `401`. Use só telefones fictícios (DDD `00`), mesmo no banco local.
+
+6. **Para acionar o S.O.S**, a pessoa precisa de ao menos um contato ativo **com consentimento**. Enquanto a forma de registrar o consentimento não for decidida, marque-o direto no banco local, usando o `id` devolvido pelo cadastro do contato:
+
+   ```bash
+   docker exec click-sos-dev-db psql -U dev -d click_sos -c \
+     "UPDATE contatos_emergencia SET consentido_em = now() WHERE id = '<id-do-contato>'"
+   ```
+
+   Sem isso, `POST /api/v1/sos/alertas` responde `422`. Com isso, responde `201` com o alerta `PENDENTE`; nenhuma mensagem é enviada, porque o envio chega no SOS-06. Use coordenadas sem significado também no banco local.
 
 ## Testes e pre-commit
 
