@@ -154,10 +154,10 @@
 
           <article class="task">
             <div class="task-meta"><span>CONTRATO HTTP</span><span>SOS-01</span></div>
-            <h4>Definir schemas e rota de criação</h4>
-            <p>Criar schemas Pydantic e OpenAPI para <code>POST /api/v1/sos/alertas</code> com latitude, longitude e mensagem opcional de até 255 caracteres. Obter o usuário exclusivamente do Bearer Token (claim <code>sub</code>, Regra 09) e rejeitar qualquer identificador de usuário enviado no corpo (Regra 01).</p>
+            <h4>Definir contrato do alerta e autenticação Bearer</h4>
+            <p>Criar schemas Pydantic do corpo e da resposta de <code>POST /api/v1/sos/alertas</code> com latitude, longitude e mensagem opcional de até 255 caracteres. Criar a dependência de autenticação reutilizável que obtém o usuário exclusivamente do Bearer Token (claim <code>sub</code>, Regra 09) e rejeitar qualquer identificador de usuário enviado no corpo (Regra 01). A rota é publicada no SOS-03, já com persistência.</p>
             <p><strong>Banco:</strong> não cria, lê ou atualiza tabelas nesta tarefa; somente define o contrato que será persistido em <code>alertas_sos</code>.</p>
-            <p class="done"><b>Pronto quando:</b> OpenAPI documentar corpos, respostas 201/401/422 e os testes aceitarem 255 caracteres, rejeitarem 256 e retornarem 401 para token ausente, expirado ou mal assinado.</p>
+            <p class="done"><b>Pronto quando:</b> os testes aceitarem 255 caracteres, rejeitarem 256 e <code>usuario_id</code> no corpo, e a dependência retornar 401 para token ausente, expirado, mal assinado ou com <code>sub</code> inválido, aceitando token assinado com <code>JWT_SECRET_KEY</code>.</p>
           </article>
 
           <article class="task">
@@ -172,9 +172,9 @@
           <article class="task">
             <div class="task-meta"><span>SERVIÇO</span><span>SOS-03</span></div>
             <h4>Persistir alerta em transação</h4>
-            <p>Implementar serviço que valida coordenadas, verifica contatos ativos consentidos, grava o alerta como <code>PENDENTE</code> e devolve seu UUID sem chamar serviços externos.</p>
+            <p>Implementar serviço que valida coordenadas, verifica contatos ativos consentidos, grava o alerta como <code>PENDENTE</code> e devolve seu UUID sem chamar serviços externos. Publicar a rota <code>POST /api/v1/sos/alertas</code> usando o contrato e a autenticação do SOS-01.</p>
             <p><strong>Banco:</strong> fazer <code>SELECT</code> em <code>contatos_emergencia</code> por <code>usuario_id</code>, <code>ativo = true</code> e consentimento confirmado; fazer <code>INSERT</code> em <code>alertas_sos</code>.</p>
-            <p class="done"><b>Pronto quando:</b> testes cobrem coordenada inválida, usuário sem contatos ativos e criação bem-sucedida sem envio de WhatsApp.</p>
+            <p class="done"><b>Pronto quando:</b> testes cobrem coordenada inválida, usuário sem contatos ativos e criação bem-sucedida sem envio de WhatsApp, e a OpenAPI documenta corpos e respostas 201/401/422.</p>
           </article>
 
           <article class="task">
