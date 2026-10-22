@@ -63,3 +63,29 @@ def inserir_alerta(
         ),
         {**dados, "latitude": latitude, "longitude": longitude, "srid": srid},
     ).one()
+
+
+def inserir_tentativa(
+    conexao: Connection,
+    alerta_id,
+    contato_id,
+    numero_tentativa: int = 1,
+    status: str = "FALHOU",
+    **sobrescritas,
+) -> Row:
+    dados = {
+        "alerta_id": alerta_id,
+        "contato_id": contato_id,
+        "numero_tentativa": numero_tentativa,
+        "status": status,
+        **sobrescritas,
+    }
+    colunas = ", ".join(dados)
+    valores = ", ".join(f":{coluna}" for coluna in dados)
+    return conexao.execute(
+        text(
+            f"INSERT INTO tentativas_envio_sos ({colunas}) VALUES ({valores}) "
+            "RETURNING id, executado_em"
+        ),
+        dados,
+    ).one()
