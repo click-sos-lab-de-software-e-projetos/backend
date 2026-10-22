@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI
 
-from app.api.v1 import contatos
+from app.api.v1 import contatos, sos
 
 app = FastAPI(
     title="Click S.O.S API",
@@ -11,6 +11,7 @@ app = FastAPI(
 )
 
 app.include_router(contatos.router)
+app.include_router(sos.router)
 
 
 @app.get("/health", tags=["operacional"])
