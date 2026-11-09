@@ -14,33 +14,35 @@ Cada tarefa abaixo traz o lado **backend** (este repositório) e o lado
 | Conta | AUTH-01: cadastro, login, JWT de 24 h, `GET /auth/me`, CORS opcional | Login, tela de cadastro, sessão em memória, logout ao receber 401 |
 | Contatos | CONT-01: CRUD em `/contatos`, até 3 ativos, telefone E.164 | Listar, adicionar, ativar e desativar contatos; mostra o status de consentimento; o telefone digitado é convertido para E.164 |
 | S.O.S | SOS-01 a SOS-04: contrato, migrações, `POST /sos/alertas` grava o alerta como `PENDENTE`, montagem da mensagem | Segurar o botão por 3 s envia latitude, longitude e mensagem; mostra a mensagem de erro da API; WhatsApp manual por `wa.me` |
+| Consentimento | Tarefa 1: link de uso único, rotas públicas e migração 0008 | Botão que envia o link pelo WhatsApp; página `tela-consentimento` |
 | Recusado | SOS-05 (cliente da Evolution API): o PR #9 foi fechado sem merge em 09/11 e será refeito do zero | — |
 
 ---
 
-## Tarefa 1 — Registrar o consentimento dos contatos (CONT-01 · Regra 03 · SOSM-02)
+## Tarefa 1 — Registrar o consentimento dos contatos (CONT-01 · Regra 03 · SOSM-02) ✅
 
-> **Bloqueia o S.O.S de verdade:** sem consentimento, `POST /sos/alertas` responde 422 para todo mundo.
+**Entregue em 09/11.** Link de uso único (7 dias) para a página
+[`tela-consentimento`](https://github.com/click-sos-lab-de-software-e-projetos/tela-consentimento),
+em que o contato aceita ou recusa.
 
-**Decidido (09/11):** link com token de uso único, que o contato abre e confirma. A página web completa fica para depois.
+**Backend** (`5db5ce5`)
+- [x] Migração 0008: `recusado_em`, hash SHA-256 do token e expiração em `contatos_emergencia`.
+- [x] `POST /api/v1/contatos/{id}/consentimento` (JWT) gera ou renova o link `<CONSENTIMENTO_URL_BASE>#token=...`.
+- [x] `POST /api/v1/consentimento/pedido` e `POST /api/v1/consentimento/resposta`, públicas, com o token no corpo.
+- [x] Mudar o telefone no `PATCH` apaga consentimento, recusa e token.
+- [x] Testes: token expirado, reutilizado ou desconhecido; contato de outra pessoa; 409 se já consentiu.
 
-**Backend**
-- [ ] Migração com um token de consentimento por contato:
-  - guardar só o hash do token;
-  - prazo de expiração.
-- [ ] Rotas novas:
-  - `POST /api/v1/contatos/{id}/consentimento/link`, autenticada, gera ou renova o link;
-  - `POST /api/v1/consentimento/{token}`, pública, grava `consentido_em`.
-- [ ] Quando o telefone de um contato mudar no `PATCH`, apagar o `consentido_em` dele.
-- [ ] Testes:
-  - token expirado ou reutilizado;
-  - contato de outra pessoa retorna 404;
-  - telefone e token não aparecem em logs.
+**Página** (`tela-consentimento` `9632ca4`)
+- [x] HTML, CSS e JS puros, botões "Aceito" e "Não aceito", telas de link inválido e erro de rede.
+- [x] Testada de ponta a ponta com o backend local (aceitar, recusar, link reutilizado, sem rede).
 
-**Frontend**
-- [ ] Botão "Enviar pedido de consentimento", que abre o WhatsApp com o link para o contato.
-- [ ] Atualizar o status do contato ao voltar para a tela.
-- [ ] Explicar que o contato só recebe alertas depois de consentir (Regra 03).
+**Frontend** (`6b9ae22`)
+- [x] Botão "Enviar pedido de consentimento" no Perfil abre o WhatsApp com o link.
+- [x] Os contatos recarregam quando o app volta do WhatsApp.
+- [x] Status "Recusou receber alertas" no Perfil e na tela Configurar SOS.
+
+**Falta no deploy:** publicar a página como Static Site no Render, trocar `API_BASE_URL` em
+`src/config.js` e configurar `CONSENTIMENTO_URL_BASE` e `CORS_ORIGIN_REGEX` no backend (Tarefa 11).
 
 ## Tarefa 2 — Envio por WhatsApp em segundo plano (SOS-05 a SOS-08 · Regra 04)
 
