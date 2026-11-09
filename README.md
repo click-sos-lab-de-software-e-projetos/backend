@@ -1,6 +1,6 @@
 # Click S.O.S — Backend
 
-Base técnica inicial do backend do Click S.O.S. Neste estágio existem a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01) e a criação do alerta em `POST /api/v1/sos/alertas` (SOS-03), que grava o alerta como `PENDENTE`. Ainda não há cadastro/login (AUTH-01), envio por WhatsApp ou mapa.
+Base técnica inicial do backend do Click S.O.S. Neste estágio existem o cadastro e login com JWT em `/api/v1/auth` (AUTH-01), a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01) e a criação do alerta em `POST /api/v1/sos/alertas` (SOS-03), que grava o alerta como `PENDENTE`. Ainda não há envio por WhatsApp nem mapa.
 
 ## Requisitos
 
@@ -34,7 +34,7 @@ Com a aplicação iniciada, consulte `http://localhost:8000/health`. A documenta
 
 ## Testar as rotas privadas no Swagger
 
-As rotas de `/api/v1/contatos` e `/api/v1/sos/alertas` exigem um banco migrado e um JWT. Enquanto o AUTH-01 não existir, o token vem de `scripts/token_dev.py`, que cria uma pessoa usuária fictícia e imprime um token dela.
+As rotas de `/api/v1/contatos` e `/api/v1/sos/alertas` exigem um banco migrado e um JWT, obtido pelo cadastro e login de `/api/v1/auth` (AUTH-01). O token vale 24 horas (ajuste com `JWT_EXPIRACAO_MIN`) e não é renovado: ao expirar, faça login de novo.
 
 1. **Suba um PostGIS de desenvolvimento**, separado do banco de testes (que é apagado a cada execução):
 
@@ -63,19 +63,18 @@ As rotas de `/api/v1/contatos` e `/api/v1/sos/alertas` exigem um banco migrado e
    set -a; source .env; set +a
    ```
 
-4. **Migre, gere o token e suba a API:**
+4. **Migre e suba a API:**
 
    ```bash
    alembic upgrade head
-   python scripts/token_dev.py          # imprime o token; guarde-o
    uvicorn app.main:app --reload --port 8000
    ```
 
-   Para reaproveitar a mesma pessoa depois: `python scripts/token_dev.py --usuario-id <uuid>`. O UUID é exibido quando ela é criada. O script recusa bancos fora da sua máquina para não criar pessoas fictícias no banco da equipe.
+5. **No Swagger** (`http://localhost:8000/docs`), crie uma conta em `POST /api/v1/auth/cadastro` (e-mail `@example.com`, senha com ao menos 8 caracteres) e entre em `POST /api/v1/auth/login`. Copie o `access_token` da resposta, clique em **Authorize**, cole-o (sem a palavra `Bearer`) e use **Try it out** nas rotas de contatos.
 
-5. **No Swagger** (`http://localhost:8000/docs`), clique em **Authorize**, cole o token (sem a palavra `Bearer`) e use **Try it out** nas rotas de contatos.
+   Atalho opcional: `python scripts/token_dev.py` cria uma pessoa fictícia e imprime um token dela, sem senha (ela não consegue fazer login). Para reaproveitá-la: `--usuario-id <uuid>`. O script recusa bancos fora da sua máquina.
 
-Comportamentos esperados: o quarto contato ativo responde `409`; o contato de outra pessoa responde `404`; sem token, `401`. Use só telefones fictícios (DDD `00`), mesmo no banco local.
+Comportamentos esperados: e-mail já cadastrado responde `409`; senha errada ou e-mail inexistente respondem o mesmo `401`; o quarto contato ativo responde `409`; o contato de outra pessoa responde `404`; sem token, `401`. Use só telefones fictícios (DDD `00`), mesmo no banco local.
 
 6. **Para acionar o S.O.S**, a pessoa precisa de ao menos um contato ativo **com consentimento**. Enquanto a forma de registrar o consentimento não for decidida, marque-o direto no banco local, usando o `id` devolvido pelo cadastro do contato:
 

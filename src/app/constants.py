@@ -5,6 +5,14 @@ MENSAGEM_PADRAO_SOS = (
     "Minha localização é a informada acima."
 )
 NOME_VARIAVEL_SEGREDO_JWT = "JWT_SECRET_KEY"
+NOME_VARIAVEL_EXPIRACAO_JWT = "JWT_EXPIRACAO_MIN"
+# Regra 09: o token vale 24 horas e não há renovação (refresh) no MVP.
+EXPIRACAO_JWT_PADRAO_MIN = 24 * 60
+TAMANHO_MINIMO_SENHA = 8
+# O bcrypt só considera os primeiros 72 bytes; acima disso a senha é recusada.
+LIMITE_BYTES_SENHA = 72
+LIMITE_NOME_COMPLETO = 120
+LIMITE_EMAIL = 150
 NOME_VARIAVEL_URL_BANCO = "DATABASE_URL"
 LIMITE_CONTATOS_ATIVOS = 3
 LIMITE_NOME_CONTATO = 100

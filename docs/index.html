@@ -130,7 +130,7 @@
             <p><strong>Banco:</strong> fazer <code>INSERT</code> em <code>usuarios</code> no cadastro (e-mail único) e <code>SELECT</code> por e-mail no login. Depende da migração de <code>usuarios</code> criada no SOS-02.</p>
             <p><strong>Segurança:</strong> credencial inválida devolve 401 com mensagem genérica, sem revelar se o e-mail existe; senha, hash e token nunca aparecem em resposta ou log.</p>
             <p class="done"><b>Pronto quando:</b> testes cobrirem cadastro (201), e-mail duplicado (409), dados inválidos (422), senha errada (401) e um token emitido aqui for aceito pela dependência de autenticação do SOS-01.</p>
-            <div class="yume-decision"><strong>Decisão pendente da Yume</strong><p>Definir tempo de expiração do token, se haverá renovação (refresh) no MVP e a política mínima de senha.</p></div>
+            <div class="yume-decision"><strong>Decidido pela Yume</strong><p>Token de 24 horas, sem renovação (refresh) no MVP; senha com no mínimo 8 caracteres. O cadastro não devolve token: o app chama o login em seguida.</p></div>
           </article>
 
           <article class="task foundation-card">

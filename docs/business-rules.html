@@ -102,7 +102,7 @@
             <p><strong>Contrato do token:</strong> a claim <code>sub</code> carrega o UUID da pessoa usuária e a claim <code>exp</code> é obrigatória. O segredo vem somente de <code>JWT_SECRET_KEY</code>.</p>
             <p><strong>Impacto backend:</strong> o ticket AUTH-01 emite o token no login; as rotas privadas, a começar pelo SOS-01, validam assinatura e expiração e respondem 401 quando o token falta ou é inválido.</p>
             <p class="mobile-note"><strong>Impacto mobile:</strong> guardar o token com segurança, enviá-lo no cabeçalho <code>Authorization: Bearer</code> e encerrar a sessão ao receber 401.</p>
-            <p class="pending"><strong>Pendente:</strong> tempo de expiração, renovação (refresh) no MVP e política mínima de senha.</p>
+            <p><strong>Expiração, renovação e senha:</strong> o token vale 24 horas (configurável por <code>JWT_EXPIRACAO_MIN</code>); não há renovação (refresh) no MVP, então o app pede novo login ao receber 401; a senha exige no mínimo 8 caracteres (e no máximo 72 bytes, limite do bcrypt).</p>
           </article>
         </div>
       </section>
@@ -120,7 +120,6 @@
             <li>Qual será a fonte, licença e regra objetiva de raio da planilha de regiões de São Paulo?</li>
             <li>Quais categorias, tamanho máximo de texto, política de fotos e acesso administrativo serão aceitos para feedbacks comunitários?</li>
             <li>Qual fórmula do score oficial define as faixas verde, amarela, laranja e vermelha? Quais serão os limites padrão de raio e de regiões por resposta?</li>
-            <li>Qual será o tempo de expiração do JWT, haverá renovação (refresh) no MVP e qual a política mínima de senha?</li>
             <li>Como o consentimento dos contatos de emergência será registrado no MVP enquanto a página web de consentimento não existir?</li>
           </ol>
           <h3>Mobile</h3>

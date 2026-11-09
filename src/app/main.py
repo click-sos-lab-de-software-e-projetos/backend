@@ -2,14 +2,18 @@
 
 from fastapi import FastAPI
 
-from app.api.v1 import contatos, sos
+from app.api.v1 import auth, contatos, sos
 
 app = FastAPI(
     title="Click S.O.S API",
     version="0.1.0",
-    description="API do Click S.O.S. Rotas privadas exigem `Authorization: Bearer <JWT>`.",
+    description=(
+        "API do Click S.O.S. Rotas privadas exigem `Authorization: Bearer <JWT>`, "
+        "obtido em `POST /api/v1/auth/login`."
+    ),
 )
 
+app.include_router(auth.router)
 app.include_router(contatos.router)
 app.include_router(sos.router)
 

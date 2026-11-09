@@ -1,6 +1,6 @@
 """Emite um JWT de desenvolvimento para testar rotas privadas no Swagger.
 
-Paliativo até o AUTH-01 (cadastro e login) existir. Sem argumentos, cria uma
+Atalho opcional ao fluxo de cadastro e login do AUTH-01. Sem argumentos, cria uma
 pessoa usuária fictícia em DATABASE_URL e imprime um token dela; com
 --usuario-id, só emite o token, sem tocar no banco.
 
