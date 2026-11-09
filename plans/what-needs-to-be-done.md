@@ -272,9 +272,9 @@ Dados úteis das ocorrências:
 ## Tarefa 11 — Qualidade, CI e documentação
 
 **Backend**
-- [ ] Criar um workflow de CI: lint e `pytest` com um serviço PostGIS, para que os testes de integração rodem.
+- [x] Workflow de CI: `ruff` (E, F, I) e `pytest` com um serviço PostGIS; os 291 testes rodam, incluindo integração.
 - [ ] Atualizar `docs/index.html` com o status de cada ticket, incluindo `/me` e CORS.
-- [ ] **Deploy no Render** (decidido em 09/11):
+- [ ] **Deploy no Render** (decidido em 09/11). O `render.yaml` já está pronto; falta criar o Blueprint na conta e preencher os segredos:
   - web service com `uvicorn`;
   - `DATABASE_URL` do Neon, `JWT_SECRET_KEY` e as variáveis da Evolution API configuradas como segredos no Render;
   - rodar `alembic upgrade head` a cada deploy;
@@ -291,7 +291,7 @@ Dados úteis das ocorrências:
   - desligar o ping depois.
 
 **Frontend**
-- [ ] A pasta legada `lib/screens/` quebra `dart format` e `flutter analyze`, então o CI está vermelho. Remover a pasta ou corrigi-la.
+- [x] CI verde: `lib/screens/` (mapa do Lucas, 28/10) foi formatada e excluída do analyzer, porque importa arquivos da estrutura antiga. Fica como referência para a Tarefa 5.
 - [ ] `docs/mobile-epic.html` descreve Kotlin, Compose e Retrofit, mas o app é Flutter. Atualizar o épico.
 - [ ] SOSM-06 e MAPM-05:
   - acessibilidade: contraste, área de toque, leitor de tela;

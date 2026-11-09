@@ -101,11 +101,12 @@ Comportamentos esperados: e-mail já cadastrado responde `409`; senha errada ou 
 ## Testes e pre-commit
 
 ```bash
+ruff check src tests migrations
 pytest
 pre-commit install
 ```
 
-Depois de instalado, o hook executa todos os testes Python antes de cada commit.
+Depois de instalado, o hook executa todos os testes Python antes de cada commit. O CI (`.github/workflows/ci.yml`) roda `ruff` e `pytest` com um PostGIS, incluindo os testes de integração.
 
 ### Testes de integração (PostgreSQL/PostGIS)
 
@@ -152,6 +153,17 @@ Quando a URL segura for fornecida, defina `NEON_ENV_URL` e execute:
 ```
 
 O script baixa o arquivo para `.env`; não inclua essa URL nem segredos no Git.
+
+## Deploy no Render
+
+O `render.yaml` descreve o web service no plano gratuito. No Render, crie um **Blueprint** apontando para este repositório e preencha as variáveis marcadas como `sync: false`:
+
+- `DATABASE_URL`: URL do Neon (`postgresql://...`; o driver `psycopg` é colocado automaticamente);
+- `CORS_ORIGIN_REGEX`: origens da página de consentimento e do app web, separadas por `|`;
+- `CONSENTIMENTO_URL_BASE`: endereço da página `tela-consentimento`;
+- `EVOLUTION_API_URL` e `EVOLUTION_API_KEY`: quando o envio por WhatsApp existir.
+
+`JWT_SECRET_KEY` é gerada pelo Render. Cada deploy roda `alembic upgrade head` antes de subir o `uvicorn`. O serviço gratuito dorme depois de uns 15 minutos sem requisições; veja o roteiro da apresentação na Tarefa 11 de `plans/what-needs-to-be-done.md`.
 
 ## Verificação do scaffold
 

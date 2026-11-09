@@ -1,0 +1,25 @@
+# Blueprint do Render (plano gratuito). Ver "Deploy no Render" no README.
+# O plano gratuito não tem pre-deploy command, então as migrações rodam no start.
+services:
+  - type: web
+    name: click-sos-backend
+    runtime: python
+    plan: free
+    buildCommand: pip install .
+    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGIN_REGEX
+        sync: false
+      - key: CONSENTIMENTO_URL_BASE
+        sync: false
+      - key: EVOLUTION_API_URL
+        sync: false
+      - key: EVOLUTION_API_KEY
+        sync: false
