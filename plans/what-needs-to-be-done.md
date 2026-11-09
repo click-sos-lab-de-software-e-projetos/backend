@@ -91,7 +91,7 @@ O cliente do PR #9 chama `POST {EVOLUTION_API_URL}/message/sendText/{EVOLUTION_I
 - O WhatsApp pode banir números que enviam muitas mensagens automáticas. Envie só para contatos que consentiram e evite rajadas nos testes.
 - Desconecte a instância (`DELETE /instance/logout/click-sos-dev`) quando não estiver usando.
 - Para a demonstração, avaliar um chip dedicado no lugar do número pessoal.
-- Para a demo fora do seu computador, a Evolution API precisa ficar num servidor acessível pelo backend (VPS ou serviço de containers). Decidir junto com o deploy (Tarefa 11).
+- Para a demo fora do seu computador, a Evolution API vai para o Render, junto com o backend (Tarefa 11).
 
 **Backend**
 - [ ] Revisar e fazer merge do PR #9 (SOS-05). Ele já adiciona `EVOLUTION_INSTANCE` ao `.env.example`.
@@ -139,23 +139,45 @@ O cliente do PR #9 chama `POST {EVOLUTION_API_URL}/message/sendText/{EVOLUTION_I
 ## Tarefa 5 — Mapa de risco (MAP-01 a MAP-03 · MAP-05 a MAP-08 · MAPM-01 a MAPM-03)
 
 **Decidido (09/11):**
-- **Fonte:** a planilha já foi exportada para uma tabela no banco **Neon**. Não haverá importação de Excel.
+- **Fonte:** dados criminais da SSP-SP, já carregados no banco **Neon**. Não haverá importação de Excel pelo app.
 - **Região:** distrito (96 em São Paulo).
 - **Score:** 0 a 100, em 3 faixas: verde abaixo de 34, amarelo de 34 a 66, vermelho a partir de 67.
+- **Raio do círculo:** raio de um círculo com a mesma área do distrito, `sqrt(área / π)`.
 - **Consulta:** raio padrão de 3 km, raio máximo de 10 km, no máximo 50 regiões por resposta.
 
-**Ainda pendente:**
-- Nome da tabela no Neon e o significado de cada coluna.
-- Fonte original e licença dos dados.
-- Regra do raio do círculo. Proposta: o raio de um círculo com a mesma área do distrito (`sqrt(área / π)`).
+### O que já existe no Neon (inspecionado em 09/11, só leitura)
+
+| Tabela | Linhas | Conteúdo |
+|--------|--------|----------|
+| `interno.cargas_ssp` | 1 | Registro da carga de `SPDadosCriminais_2026.xlsx`: 296.566 linhas lidas, 288.487 inseridas, 8.078 rejeitadas |
+| `interno.ocorrencias_ssp` | 288.487 | Uma ocorrência por linha: `localizacao` (Point 4326, índice GiST), `rubrica`, `natureza_apurada`, `data_ocorrencia`, `bairro`, `delegacia`, `peso` de 1 a 3 |
+| `interno.fontes_geograficas` | 1 | `distritos-sp.geojson` do GeoSampa (dados abertos da Prefeitura de SP) |
+| `public.regioes_seguranca` | 96 | Distritos com `id_publico` (`distrito-sp-N`), `limites` (MultiPolygon 4326, GiST), `centroide`, `score_oficial`, `score_final`, `cor_hex`, `raio_metros` |
+
+Dados úteis das ocorrências:
+- **Peso por crime:** furto vale 1; roubo e lesão corporal valem 2; homicídio e estupro valem 3.
+- **Datas:** quase todas as ocorrências são de 2026, com cerca de 6 mil de 2025.
+- **Território:** 287.871 são do município de São Paulo, e 255.441 caem dentro de algum distrito.
+
+**Problemas encontrados**
+- **Migrações fora do Git:** o Neon está na migração `0007`, mas o repositório só vai até a `0005`. As migrações `0006` e `0007` (e o script de carga) não estão em nenhum branch nem PR.
+- **Score fora da escala:** `score_final` vai de 131 a 9943, não de 0 a 100, e `score_oficial` é 0 em todos os distritos. A fórmula usada não está no repositório. Não é a simples soma dos pesos (bateu em só 1 distrito).
+- **Cor única:** os 96 distritos estão vermelhos (`#EF4444`).
+- **Raio:** `raio_metros` já segue a regra decidida (área equivalente).
+- **Licença:** a carga da SSP registra "não informada no arquivo fornecido".
 
 **Credenciais:** o backend não guarda a URL do Neon. O `.env` é baixado com `NEON_ENV_URL=... ./scripts/fetch-env.sh`, e `DATABASE_URL` aponta para o Neon. Os testes continuam no PostGIS descartável, nunca no Neon.
 
 **Backend**
-- [ ] MAP-01: inspecionar a tabela exportada no Neon e documentar o contrato (colunas, tipos, geometria em SRID 4326). Incluir um exemplo sem dados sensíveis nos testes.
-- [ ] MAP-02: migração `regioes_seguranca` (MultiPolygon 4326, centroide, índice GiST).
-- [ ] MAP-03: script idempotente (upsert pelo ID público) que lê a tabela exportada e preenche `regioes_seguranca`, com relatório de linhas importadas, atualizadas e rejeitadas. Ele substitui a importação de Excel.
-- [ ] MAP-05: função pura que calcula score, cor e raio com as faixas acima. Feedback comunitário tem peso zero.
+- [ ] MAP-01 e MAP-02: trazer para o repositório as migrações `0006` e `0007` exatamente como estão no Neon. Elas criam o schema `interno`, as 3 tabelas internas e `regioes_seguranca`.
+  - Recuperar o código de quem rodou a carga.
+  - Se não der, escrever as migrações a partir do schema atual e marcar o Neon com `alembic stamp`.
+- [ ] MAP-03: trazer também o script de carga (SSP e GeoSampa), idempotente pelo `arquivo_sha256` e pela `chave_fonte`, com testes.
+- [ ] MAP-05: função pura que recalcula o score:
+  - normalizar a soma dos pesos para 0 a 100. Proposta: dividir a soma dos pesos pela área do distrito em km² e escalar pelo maior valor;
+  - aplicar as 3 faixas de cor; o raio continua por área equivalente;
+  - feedback comunitário tem peso zero;
+  - comando que regrava `score_oficial`, `score_final`, `cor_hex` e `raio_metros` dos 96 distritos.
 - [ ] MAP-06 e MAP-07: `GET /api/v1/mapa/regioes?latitude&longitude&raio`:
   - raio padrão de 3000 m; acima de 10000 m responde 422;
   - no máximo 50 regiões, das mais próximas para as mais distantes;
@@ -225,7 +247,7 @@ O cliente do PR #9 chama `POST {EVOLUTION_API_URL}/message/sendText/{EVOLUTION_I
 - Depois disso, o alerta é **anonimizado**: as coordenadas e a mensagem são apagadas, e o status e as datas ficam para estatística.
 - Haverá exclusão de conta no app.
 
-**Ainda pendente:** quem da equipe pode acessar os dados de produção.
+**Acesso aos dados de produção:** só a Yume.
 
 **Backend**
 - [ ] Rotina diária (comando ou job) que anonimiza `alertas_sos` com mais de 180 dias e apaga os textos e telefones de `tentativas_envio_sos` ligadas a eles. Precisa ser idempotente e ter testes.
@@ -241,7 +263,15 @@ O cliente do PR #9 chama `POST {EVOLUTION_API_URL}/message/sendText/{EVOLUTION_I
 **Backend**
 - [ ] Criar um workflow de CI: lint e `pytest` com um serviço PostGIS, para que os testes de integração rodem.
 - [ ] Atualizar `docs/index.html` com o status de cada ticket, incluindo `/me` e CORS.
-- [ ] Definir onde a API será publicada (deploy) e qual `API_BASE_URL` o app vai usar.
+- [ ] **Deploy no Render** (decidido em 09/11):
+  - web service com `uvicorn`;
+  - `DATABASE_URL` do Neon, `JWT_SECRET_KEY` e as variáveis da Evolution API configuradas como segredos no Render;
+  - rodar `alembic upgrade head` a cada deploy;
+  - publicar a URL e usá-la como `API_BASE_URL` no build de demonstração do app.
+- [ ] **Evolution API no Render**, como um segundo serviço com a imagem Docker:
+  - o plano gratuito "dorme" quando fica parado e derruba a conexão do WhatsApp, então a Evolution API precisa de uma instância paga sempre ligada;
+  - o Postgres dela fica num banco separado no Neon, nunca no `neondb`.
+- [ ] Avisar no app que a primeira requisição pode demorar cerca de 1 minuto se o backend estiver no plano gratuito.
 
 **Frontend**
 - [ ] A pasta legada `lib/screens/` quebra `dart format` e `flutter analyze`, então o CI está vermelho. Remover a pasta ou corrigi-la.
@@ -258,7 +288,7 @@ O cliente do PR #9 chama `POST {EVOLUTION_API_URL}/message/sendText/{EVOLUTION_I
 1. **Tarefas 1 e 11:** destravam o S.O.S real e deixam o CI verde nos dois repositórios.
 2. **Tarefas 2 e 3:** envio por WhatsApp e status do alerta, para o fluxo de emergência completo.
 3. **Tarefas 4 e 8:** acabamento do fluxo S.O.S e dos contatos no app.
-4. **Tarefa 5, depois a 6:** mapa de risco, a partir da tabela já exportada no Neon.
+4. **Tarefa 5, depois a 6:** mapa de risco. Primeiro trazer para o Git as migrações e a carga que já estão no Neon, depois recalcular o score.
 5. **Tarefas 7, 9 e 10:** perfil, sessão persistente e privacidade, antes de qualquer uso fora da equipe.
 
 ## Decisões
@@ -269,20 +299,23 @@ Respondidas pela Yume em 09/11/2026.
 |---------|----------|--------|
 | Como registrar o consentimento sem página web | Link com token de uso único | 1 |
 | Evolution API: ambiente e número (YUME-04) | Número pessoal da Yume por enquanto; envio real em dev e na demo | 2 |
-| Fonte dos dados do mapa (YUME-05) | Tabela exportada no Neon | 5 |
+| Fonte dos dados do mapa (YUME-05) | SSP-SP, já carregada no Neon (`interno.ocorrencias_ssp`); distritos do GeoSampa | 5 |
 | Tamanho da região | Distrito | 5 |
 | Score e cores | 0 a 100, em 3 faixas (verde abaixo de 34, amarelo de 34 a 66, vermelho a partir de 67) | 5 |
+| Raio do círculo | Área equivalente, `sqrt(área / π)` | 5 |
 | Raio e limite da consulta | 3 km padrão, 10 km no máximo, até 50 regiões | 5 |
 | Feedback | 6 categorias, até 500 caracteres, sem fotos | 6 |
 | Sessão | `flutter_secure_storage` | 9 |
 | Retenção (YUME-03) | 180 dias, depois anonimizar; com exclusão de conta | 10 |
+| Acesso aos dados de produção | Só a Yume | 10 |
+| Hospedagem da demo | Backend e Evolution API no Render | 2 e 11 |
+| Acesso ao Neon no dev | `NEON_ENV_URL` com `scripts/fetch-env.sh` | 5 |
 
 ### Ainda em aberto
 
-| Decisão | Trava |
-|---------|-------|
-| Nome da tabela no Neon e significado das colunas | Tarefa 5 (MAP-01) |
-| Fonte original e licença dos dados | Tarefa 5 (antes da demo pública) |
-| Regra do raio do círculo (proposta: raio de área equivalente) | Tarefa 5 (MAP-05) |
-| Onde hospedar a Evolution API e o backend para a demo | Tarefas 2 e 11 |
-| Quem pode acessar os dados de produção | Tarefa 10 |
+| Pendência | Trava |
+|-----------|-------|
+| Recuperar o código das migrações `0006`/`0007` e do script de carga, que estão no Neon mas não no Git | Tarefa 5 (MAP-01 a MAP-03) |
+| Fórmula de normalização do score para 0 a 100 (proposta: peso por km², escalado pelo maior) | Tarefa 5 (MAP-05) |
+| Licença dos dados da SSP, que está como "não informada" | Tarefa 5 (antes da demo pública) |
+| Período das ocorrências que entra no score (tudo, ou só os últimos 12 meses) | Tarefa 5 (MAP-05) |
