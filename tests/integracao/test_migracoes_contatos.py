@@ -17,6 +17,9 @@ def tabela_contatos_deve_ter_colunas_esperadas(banco_migrado):
         "ativo": ("boolean", None, False),
         "consentido_em": ("timestamp with time zone", None, True),
         "criado_em": ("timestamp with time zone", None, False),
+        "recusado_em": ("timestamp with time zone", None, True),
+        "token_consentimento_hash": ("character varying", 64, True),
+        "token_consentimento_expira_em": ("timestamp with time zone", None, True),
     }
 
 
@@ -52,3 +55,18 @@ def telefone_fora_do_formato_e164_deve_violar_check(banco_migrado, telefone):
 def contatos_deve_ter_indice_por_usuario_id(banco_migrado):
     indices = definicoes_de_indices(banco_migrado, "contatos_emergencia")
     assert any(definicao.endswith("(usuario_id)") for definicao in indices)
+
+
+def hash_do_token_de_consentimento_deve_ser_unico(banco_migrado):
+    with banco_migrado.begin() as conexao:
+        usuario_id = inserir_usuario(conexao).id
+        inserir_contato(conexao, usuario_id, token_consentimento_hash="a" * 64)
+    with pytest.raises(IntegrityError), banco_migrado.begin() as conexao:
+        inserir_contato(conexao, usuario_id, token_consentimento_hash="a" * 64)
+
+
+def varios_contatos_sem_token_deve_ser_permitido(banco_migrado):
+    with banco_migrado.begin() as conexao:
+        usuario_id = inserir_usuario(conexao).id
+        inserir_contato(conexao, usuario_id)
+        inserir_contato(conexao, usuario_id)

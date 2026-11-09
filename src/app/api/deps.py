@@ -9,6 +9,7 @@ from app.constants import (
     EXPIRACAO_JWT_PADRAO_MIN,
     NOME_VARIAVEL_EXPIRACAO_JWT,
     NOME_VARIAVEL_SEGREDO_JWT,
+    NOME_VARIAVEL_URL_CONSENTIMENTO,
 )
 from app.core.security import TokenInvalido, extrair_usuario_id
 
@@ -20,6 +21,13 @@ def obter_segredo_jwt() -> str:
     if not segredo:
         raise RuntimeError(f"{NOME_VARIAVEL_SEGREDO_JWT} não configurada.")
     return segredo
+
+
+def obter_url_consentimento() -> str:
+    url = os.environ.get(NOME_VARIAVEL_URL_CONSENTIMENTO)
+    if not url:
+        raise RuntimeError(f"{NOME_VARIAVEL_URL_CONSENTIMENTO} não configurada.")
+    return url
 
 
 def obter_validade_jwt_min() -> int:

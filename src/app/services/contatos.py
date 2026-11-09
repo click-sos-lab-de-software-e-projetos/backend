@@ -71,6 +71,14 @@ def atualizar(
     if mudancas.get("ativo") and not contato.ativo:
         _garantir_vaga_para_ativo(sessao, usuario_id)
 
+    telefone_novo = mudancas.get("telefone_whatsapp")
+    if telefone_novo is not None and telefone_novo != contato.telefone_whatsapp:
+        # O consentimento é do número (Regra 03): número novo precisa consentir de novo.
+        contato.consentido_em = None
+        contato.recusado_em = None
+        contato.token_consentimento_hash = None
+        contato.token_consentimento_expira_em = None
+
     for campo, valor in mudancas.items():
         setattr(contato, campo, valor)
     sessao.commit()

@@ -1,6 +1,6 @@
 # Click S.O.S — Backend
 
-Base técnica inicial do backend do Click S.O.S. Neste estágio existem o cadastro e login com JWT em `/api/v1/auth` (AUTH-01), a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01) e a criação do alerta em `POST /api/v1/sos/alertas` (SOS-03), que grava o alerta como `PENDENTE`. Ainda não há envio por WhatsApp nem mapa.
+Base técnica inicial do backend do Click S.O.S. Neste estágio existem o cadastro e login com JWT em `/api/v1/auth` (AUTH-01), a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01), o consentimento do contato por link de uso único, a criação do alerta em `POST /api/v1/sos/alertas` (SOS-03), que grava o alerta como `PENDENTE`. As tabelas do mapa (`regioes_seguranca` e o schema `interno` com as ocorrências da SSP) já existem, mas ainda não há rota do mapa nem envio por WhatsApp.
 
 ## Requisitos
 
@@ -35,6 +35,17 @@ Com a aplicação iniciada, consulte `http://localhost:8000/health`. A documenta
 ## Testar as rotas privadas no Swagger
 
 As rotas de `/api/v1/contatos` e `/api/v1/sos/alertas` exigem um banco migrado e um JWT, obtido pelo cadastro e login de `/api/v1/auth` (AUTH-01). O token vale 24 horas (ajuste com `JWT_EXPIRACAO_MIN`) e não é renovado: ao expirar, faça login de novo. `GET /api/v1/auth/me` devolve o perfil da pessoa dona do token.
+
+### Consentimento do contato
+
+O contato só recebe alertas depois de consentir (Regra 03). O fluxo usa a página do repositório [`tela-consentimento`](https://github.com/click-sos-lab-de-software-e-projetos/tela-consentimento):
+
+1. O app chama `POST /api/v1/contatos/{id}/consentimento` (com JWT) e recebe `{url, expira_em}`. A URL é `CONSENTIMENTO_URL_BASE#token=...` e vale 7 dias; gerar outra invalida a anterior.
+2. A pessoa envia a URL ao contato pelo WhatsApp.
+3. A página chama `POST /api/v1/consentimento/pedido` com `{token}` para mostrar quem pediu, e `POST /api/v1/consentimento/resposta` com `{token, aceito}`. Essas duas rotas são públicas; o token vai no corpo para não aparecer em logs, e só o SHA-256 dele fica no banco.
+4. Aceitar grava `consentido_em`; recusar grava `recusado_em`. O link deixa de valer depois da resposta. Trocar o telefone do contato apaga o consentimento.
+
+A origem da página precisa estar liberada em `CORS_ORIGIN_REGEX`.
 
 Para o app web (Flutter no Chrome) chamar a API, libere a origem com `CORS_ORIGIN_REGEX`, por exemplo `CORS_ORIGIN_REGEX=http://localhost:\d+`. Vazio (padrão) desliga o CORS; o app Android/iOS não precisa dele. No emulador Android, a API local fica em `http://10.0.2.2:8000`.
 
@@ -123,6 +134,8 @@ alembic downgrade base      # desfaz todas
 alembic upgrade head --sql  # mostra o SQL sem executar
 alembic check               # confirma que os modelos em src/app/db/models.py batem com as migrações
 ```
+
+As revisões `0006` e `0007` (schema `interno` e `regioes_seguranca`) foram aplicadas no Neon antes de estarem no Git e depois reescritas a partir do schema real. No Neon, `alembic upgrade head` parte da `0007`; não rode `downgrade` lá.
 
 ## Variáveis de ambiente
 

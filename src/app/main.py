@@ -5,7 +5,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import auth, contatos, sos
+from app.api.v1 import auth, consentimento, contatos, sos
 from app.constants import NOME_VARIAVEL_CORS
 
 
@@ -32,6 +32,7 @@ app = FastAPI(
 
 app.include_router(auth.router)
 app.include_router(contatos.router)
+app.include_router(consentimento.router)
 app.include_router(sos.router)
 configurar_cors(app, os.environ.get(NOME_VARIAVEL_CORS))
 

@@ -43,6 +43,7 @@ class ContatoEmergencia(Base):
         CheckConstraint(
             r"telefone_whatsapp ~ '^\+[1-9][0-9]{7,14}$'", name="ck_contatos_telefone_e164"
         ),
+        UniqueConstraint("token_consentimento_hash", name="uq_contatos_token_consentimento_hash"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, server_default=UUID_GERADO)
@@ -55,6 +56,12 @@ class ContatoEmergencia(Base):
     consentido_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     criado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+    recusado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Só o SHA-256 do token do link; o token em si nunca é gravado.
+    token_consentimento_hash: Mapped[str | None] = mapped_column(String(64))
+    token_consentimento_expira_em: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
     )
 
 

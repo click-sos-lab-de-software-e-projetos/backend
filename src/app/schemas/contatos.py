@@ -52,4 +52,5 @@ class ContatoResposta(BaseModel):
     telefone_whatsapp: str
     ativo: bool
     consentido_em: datetime | None
+    recusado_em: datetime | None
     criado_em: datetime

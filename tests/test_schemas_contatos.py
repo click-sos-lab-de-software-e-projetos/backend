@@ -84,12 +84,13 @@ def atualizacao_contato_com_usuario_id_deve_ser_rejeitada():
         AtualizarContatoRequisicao.model_validate({"usuario_id": str(uuid4())})
 
 
-def resposta_contato_nao_deve_expor_usuario_id():
+def resposta_contato_nao_deve_expor_usuario_id_nem_token():
     assert set(ContatoResposta.model_fields) == {
         "id",
         "nome",
         "telefone_whatsapp",
         "ativo",
         "consentido_em",
+        "recusado_em",
         "criado_em",
     }
