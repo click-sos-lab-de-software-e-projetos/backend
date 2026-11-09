@@ -271,9 +271,15 @@ Dados úteis das ocorrências:
   - rodar `alembic upgrade head` a cada deploy;
   - publicar a URL e usá-la como `API_BASE_URL` no build de demonstração do app.
 - [ ] **Evolution API no Render**, como um segundo serviço com a imagem Docker:
-  - o plano gratuito "dorme" quando fica parado e derruba a conexão do WhatsApp, então a Evolution API precisa de uma instância paga sempre ligada;
-  - o Postgres dela fica num banco separado no Neon, nunca no `neondb`.
-- [ ] Avisar no app que a primeira requisição pode demorar cerca de 1 minuto se o backend estiver no plano gratuito.
+  - plano **gratuito** (decidido em 09/11): o app só precisa funcionar por 3 a 4 horas na apresentação;
+  - o Postgres dela fica num banco separado no Neon, nunca no `neondb`;
+  - ligar `DATABASE_SAVE_DATA_INSTANCE=true` para a sessão do WhatsApp sobreviver a reinícios sem ler o QR code de novo.
+- [ ] **Roteiro do dia da apresentação** (o plano gratuito "dorme" depois de cerca de 15 minutos sem requisições):
+  - uns 30 minutos antes, abrir `/health` do backend e `/` da Evolution API para acordar os dois;
+  - conferir a conexão em `GET /instance/connectionState/{instancia}`; se não estiver `open`, ler o QR code de novo;
+  - durante a apresentação, manter os dois acordados com um ping a cada 10 minutos (UptimeRobot, cron-job.org ou um `while sleep 600; do curl ...; done` no notebook);
+  - mandar um S.O.S de teste para o seu número antes de começar;
+  - desligar o ping depois.
 
 **Frontend**
 - [ ] A pasta legada `lib/screens/` quebra `dart format` e `flutter analyze`, então o CI está vermelho. Remover a pasta ou corrigi-la.
@@ -310,7 +316,7 @@ Respondidas pela Yume em 09/11/2026.
 | Sessão | `flutter_secure_storage` | 9 |
 | Retenção (YUME-03) | 180 dias, depois anonimizar; com exclusão de conta | 10 |
 | Acesso aos dados de produção | Só a Yume | 10 |
-| Hospedagem da demo | Backend e Evolution API no Render | 2 e 11 |
+| Hospedagem da demo | Backend e Evolution API no Render, plano gratuito (demo de 3 a 4 h) | 2 e 11 |
 | Acesso ao Neon no dev | `NEON_ENV_URL` com `scripts/fetch-env.sh` | 5 |
 
 ### Respondidas depois de inspecionar o Neon (09/11)
