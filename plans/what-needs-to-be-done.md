@@ -14,7 +14,7 @@ Cada tarefa abaixo traz o lado **backend** (este repositório) e o lado
 | Conta | AUTH-01: cadastro, login, JWT de 24 h, `GET /auth/me`, CORS opcional | Login, tela de cadastro, sessão em memória, logout ao receber 401 |
 | Contatos | CONT-01: CRUD em `/contatos`, até 3 ativos, telefone E.164 | Listar, adicionar, ativar e desativar contatos; mostra o status de consentimento; o telefone digitado é convertido para E.164 |
 | S.O.S | SOS-01 a SOS-04: contrato, migrações, `POST /sos/alertas` grava o alerta como `PENDENTE`, montagem da mensagem | Segurar o botão por 3 s envia latitude, longitude e mensagem; mostra a mensagem de erro da API; WhatsApp manual por `wa.me` |
-| Em aberto | SOS-05 (cliente Evolution API) está no PR #9 | — |
+| Recusado | SOS-05 (cliente da Evolution API): o PR #9 foi fechado sem merge em 09/11 e será refeito do zero | — |
 
 ---
 
@@ -51,7 +51,7 @@ Cada tarefa abaixo traz o lado **backend** (este repositório) e o lado
 
 ### Como subir a Evolution API (v2)
 
-O cliente do PR #9 chama `POST {EVOLUTION_API_URL}/message/sendText/{EVOLUTION_INSTANCE}` com o header `apikey` e o corpo `{"number": "5511...", "text": "..."}`. Esse é o contrato da Evolution API v2.
+O cliente do SOS-05 deve chamar `POST {EVOLUTION_API_URL}/message/sendText/{EVOLUTION_INSTANCE}` com o header `apikey` e o corpo `{"number": "5511...", "text": "..."}`. Esse é o contrato da Evolution API v2.
 
 1. **Subir o servidor localmente** com Podman. A v2 precisa de um Postgres próprio; use um banco separado, nunca o Neon nem o banco de testes.
    ```bash
@@ -94,7 +94,14 @@ O cliente do PR #9 chama `POST {EVOLUTION_API_URL}/message/sendText/{EVOLUTION_I
 - Para a demo fora do seu computador, a Evolution API vai para o Render, junto com o backend (Tarefa 11).
 
 **Backend**
-- [ ] Revisar e fazer merge do PR #9 (SOS-05). Ele já adiciona `EVOLUTION_INSTANCE` ao `.env.example`.
+- [ ] **SOS-05, refazer do zero.** O PR #9 foi fechado em 09/11 porque a Yume não se sentiu confiante para fazer o merge. A nova versão vai em um commit direto na `main`, sem reaproveitar o branch `feat/sos-05-cliente-evolution`, e precisa ser fácil de revisar:
+  - antes do código, um plano em `plans/SOS-05-cliente-evolution.md`, no mesmo formato dos outros planos, aprovado pela Yume;
+  - commit pequeno e só com o cliente: interface `EnviadorWhatsApp`, implementação HTTP da Evolution API e implementação falsa para os testes;
+  - variáveis `EVOLUTION_API_URL`, `EVOLUTION_API_KEY` e `EVOLUTION_INSTANCE` no `.env.example`;
+  - erros classificados em temporário (timeout, 5xx, 429, que entram no retry do SOS-07) e definitivo (4xx, que não tenta de novo);
+  - nem telefone nem texto da mensagem nos logs;
+  - testes que mostrem o comportamento sem rede (`httpx.MockTransport`), e um teste manual documentado contra a Evolution API local (passo 5 acima);
+  - a mensagem do commit explica como testar em 5 minutos.
 - [ ] Documentar no README o passo a passo acima, de forma resumida.
 - [ ] SOS-06: worker que, depois do commit da transação, envia para cada contato ativo com consentimento e grava uma linha em `tentativas_envio_sos`.
 - [ ] SOS-07: até 5 tentativas, com esperas de 5, 10, 15, 20 e 25 s. Depois da 5ª falha, o alerta vira `ERRO`; com sucesso, vira `ENVIADO`.
