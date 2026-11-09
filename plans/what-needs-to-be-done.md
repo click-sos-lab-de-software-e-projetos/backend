@@ -164,17 +164,19 @@ Dados úteis das ocorrências:
 - **Score fora da escala:** `score_final` vai de 131 a 9943, não de 0 a 100, e `score_oficial` é 0 em todos os distritos. A fórmula usada não está no repositório. Não é a simples soma dos pesos (bateu em só 1 distrito).
 - **Cor única:** os 96 distritos estão vermelhos (`#EF4444`).
 - **Raio:** `raio_metros` já segue a regra decidida (área equivalente).
-- **Licença:** a carga da SSP registra "não informada no arquivo fornecido".
+- **Licença:** a carga da SSP registra "não informada no arquivo fornecido". Decidido: tratar como dado público do portal de transparência da SSP-SP e registrar a URL na carga.
 
 **Credenciais:** o backend não guarda a URL do Neon. O `.env` é baixado com `NEON_ENV_URL=... ./scripts/fetch-env.sh`, e `DATABASE_URL` aponta para o Neon. Os testes continuam no PostGIS descartável, nunca no Neon.
 
 **Backend**
 - [ ] MAP-01 e MAP-02: trazer para o repositório as migrações `0006` e `0007` exatamente como estão no Neon. Elas criam o schema `interno`, as 3 tabelas internas e `regioes_seguranca`.
-  - Recuperar o código de quem rodou a carga.
-  - Se não der, escrever as migrações a partir do schema atual e marcar o Neon com `alembic stamp`.
+  - Decidido: reescrever as migrações a partir do schema atual (colunas, `CHECK`, FKs e índices GiST listados acima).
+  - Testar as migrações no PostGIS descartável. No Neon, só rodar `alembic stamp 0007`, sem recriar nada.
 - [ ] MAP-03: trazer também o script de carga (SSP e GeoSampa), idempotente pelo `arquivo_sha256` e pela `chave_fonte`, com testes.
 - [ ] MAP-05: função pura que recalcula o score:
-  - normalizar a soma dos pesos para 0 a 100. Proposta: dividir a soma dos pesos pela área do distrito em km² e escalar pelo maior valor;
+  - usar só ocorrências dos últimos 6 meses (`data_ocorrencia`);
+  - densidade = soma dos pesos ÷ área do distrito em km²;
+  - score = densidade ÷ maior densidade × 100;
   - aplicar as 3 faixas de cor; o raio continua por área equivalente;
   - feedback comunitário tem peso zero;
   - comando que regrava `score_oficial`, `score_final`, `cor_hex` e `raio_metros` dos 96 distritos.
@@ -311,11 +313,13 @@ Respondidas pela Yume em 09/11/2026.
 | Hospedagem da demo | Backend e Evolution API no Render | 2 e 11 |
 | Acesso ao Neon no dev | `NEON_ENV_URL` com `scripts/fetch-env.sh` | 5 |
 
-### Ainda em aberto
+### Respondidas depois de inspecionar o Neon (09/11)
 
-| Pendência | Trava |
-|-----------|-------|
-| Recuperar o código das migrações `0006`/`0007` e do script de carga, que estão no Neon mas não no Git | Tarefa 5 (MAP-01 a MAP-03) |
-| Fórmula de normalização do score para 0 a 100 (proposta: peso por km², escalado pelo maior) | Tarefa 5 (MAP-05) |
-| Licença dos dados da SSP, que está como "não informada" | Tarefa 5 (antes da demo pública) |
-| Período das ocorrências que entra no score (tudo, ou só os últimos 12 meses) | Tarefa 5 (MAP-05) |
+| Decisão | Resposta | Tarefa |
+|---------|----------|--------|
+| Migrações `0006`/`0007` e carga fora do Git | Reescrever a partir do schema atual do Neon e marcar com `alembic stamp` | 5 |
+| Normalização do score | Soma dos pesos por km², escalada pelo distrito com o maior valor (= 100) | 5 |
+| Período do score | Só ocorrências dos últimos 6 meses | 5 |
+| Licença dos dados | Dados públicos do portal de transparência da SSP-SP; registrar a URL em `interno.cargas_ssp` | 5 |
+
+Nenhuma decisão trava o trabalho agora.
