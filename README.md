@@ -34,7 +34,9 @@ Com a aplicação iniciada, consulte `http://localhost:8000/health`. A documenta
 
 ## Testar as rotas privadas no Swagger
 
-As rotas de `/api/v1/contatos` e `/api/v1/sos/alertas` exigem um banco migrado e um JWT, obtido pelo cadastro e login de `/api/v1/auth` (AUTH-01). O token vale 24 horas (ajuste com `JWT_EXPIRACAO_MIN`) e não é renovado: ao expirar, faça login de novo.
+As rotas de `/api/v1/contatos` e `/api/v1/sos/alertas` exigem um banco migrado e um JWT, obtido pelo cadastro e login de `/api/v1/auth` (AUTH-01). O token vale 24 horas (ajuste com `JWT_EXPIRACAO_MIN`) e não é renovado: ao expirar, faça login de novo. `GET /api/v1/auth/me` devolve o perfil da pessoa dona do token.
+
+Para o app web (Flutter no Chrome) chamar a API, libere a origem com `CORS_ORIGIN_REGEX`, por exemplo `CORS_ORIGIN_REGEX=http://localhost:\d+`. Vazio (padrão) desliga o CORS; o app Android/iOS não precisa dele. No emulador Android, a API local fica em `http://10.0.2.2:8000`.
 
 1. **Suba um PostGIS de desenvolvimento**, separado do banco de testes (que é apagado a cada execução):
 

@@ -14,6 +14,8 @@ LIMITE_BYTES_SENHA = 72
 LIMITE_NOME_COMPLETO = 120
 LIMITE_EMAIL = 150
 NOME_VARIAVEL_URL_BANCO = "DATABASE_URL"
+# Regex das origens liberadas no CORS; vazio desliga o CORS.
+NOME_VARIAVEL_CORS = "CORS_ORIGIN_REGEX"
 LIMITE_CONTATOS_ATIVOS = 3
 LIMITE_NOME_CONTATO = 100
 # E.164: "+", código de país sem zero à esquerda e de 8 a 15 dígitos no total.

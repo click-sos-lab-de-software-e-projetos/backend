@@ -58,3 +58,15 @@ def obter_validade_jwt_min_com_valor_invalido_deve_lancar_erro(monkeypatch, valo
     monkeypatch.setenv(NOME_VARIAVEL_EXPIRACAO_JWT, valor)
     with pytest.raises(RuntimeError):
         obter_validade_jwt_min()
+
+
+def me_sem_token_deve_responder_401_sem_usar_o_banco(client):
+    resposta = client.get("/api/v1/auth/me")
+    assert resposta.status_code == 401
+    assert resposta.headers["www-authenticate"] == "Bearer"
+
+
+def openapi_deve_documentar_me_como_rota_privada():
+    me = app.openapi()["paths"]["/api/v1/auth/me"]["get"]
+    assert {"HTTPBearer": []} in me["security"]
+    assert "401" in me["responses"]

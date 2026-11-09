@@ -140,3 +140,28 @@ def fluxo_de_auth_nao_deve_registrar_senha_hash_nem_token_em_logs(
     assert "INSERT INTO usuarios" in caplog.text, "o SQL precisa ser capturado"
     for segredo in (SENHA, "outra-senha-123", senha_hash, token):
         assert segredo not in caplog.text
+
+
+# --- me ------------------------------------------------------------------------
+
+
+def me_com_token_do_login_deve_devolver_o_perfil_sem_senha(client):
+    usuario_id = client.post(CADASTRO, json=CORPO).json()["id"]
+    token = _login(client).json()["access_token"]
+
+    resposta = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+
+    assert resposta.status_code == 200
+    assert resposta.json()["id"] == usuario_id
+    assert set(resposta.json()) == {"id", "nome_completo", "email", "telefone_pessoal", "criado_em"}
+
+
+def me_de_usuario_removido_deve_responder_401(client, banco_migrado):
+    usuario_id = client.post(CADASTRO, json=CORPO).json()["id"]
+    token = _login(client).json()["access_token"]
+    with banco_migrado.begin() as conexao:
+        conexao.execute(text("DELETE FROM usuarios WHERE id = :id"), {"id": usuario_id})
+
+    resposta = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+
+    assert resposta.status_code == 401

@@ -1,9 +1,10 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import obter_segredo_jwt, obter_validade_jwt_min
+from app.api.deps import obter_segredo_jwt, obter_usuario_id, obter_validade_jwt_min
 from app.constants import TAMANHO_MINIMO_SENHA
 from app.core.security import emitir_token
 from app.db.sessao import obter_sessao
@@ -15,6 +16,8 @@ from app.schemas.auth import (
 )
 from app.services import auth as servico
 
+# A pessoa usuária vem antes da sessão: sem token válido, o banco nem é aberto.
+UsuarioId = Annotated[UUID, Depends(obter_usuario_id)]
 Sessao = Annotated[Session, Depends(obter_sessao)]
 Segredo = Annotated[str, Depends(obter_segredo_jwt)]
 ValidadeMin = Annotated[int, Depends(obter_validade_jwt_min)]
@@ -76,3 +79,21 @@ def login(dados: LoginRequisicao, sessao: Sessao, segredo: Segredo, validade_min
         access_token=emitir_token(usuario.id, segredo, validade_min),
         expires_in=validade_min * 60,
     )
+
+
+@router.get(
+    "/me",
+    response_model=UsuarioResposta,
+    summary="Ver meu perfil",
+    description="Devolve a pessoa usuária do token, sem senha nem hash.",
+    responses={401: {"description": "Token ausente, inválido ou expirado."}},
+)
+def obter_perfil(usuario_id: UsuarioId, sessao: Sessao):
+    try:
+        return servico.obter(sessao, usuario_id)
+    except servico.UsuarioNaoEncontrado:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Não autenticado.",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from None

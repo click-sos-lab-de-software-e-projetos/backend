@@ -65,7 +65,7 @@ Conterá os modelos Pydantic que definem os dados recebidos e enviados pela API.
 
 ### `services/`
 
-Regras de negócio. `auth.py` implementa o AUTH-01: cadastro com senha bcrypt e login que não revela se o e-mail existe. `contatos.py` implementa o CONT-01: isolamento por `usuario_id` e limite de contatos ativos, com trava `FOR UPDATE` em `usuarios`. `alertas.py` implementa o SOS-03: exige ao menos um contato ativo com consentimento e grava o alerta como `PENDENTE`, sem chamar serviços externos. Próximo serviço: cálculo de risco de uma região. Rotas HTTP devem delegar a lógica para esta camada em vez de concentrá-la em `api/`.
+Regras de negócio. `auth.py` implementa o AUTH-01: cadastro com senha bcrypt, login que não revela se o e-mail existe e leitura do perfil (`/me`). `contatos.py` implementa o CONT-01: isolamento por `usuario_id` e limite de contatos ativos, com trava `FOR UPDATE` em `usuarios`. `alertas.py` implementa o SOS-03: exige ao menos um contato ativo com consentimento e grava o alerta como `PENDENTE`, sem chamar serviços externos. Próximo serviço: cálculo de risco de uma região. Rotas HTTP devem delegar a lógica para esta camada em vez de concentrá-la em `api/`.
 
 ### `workers/`
 
@@ -73,7 +73,7 @@ Reservada para tarefas executadas fora da resposta HTTP, como despacho do alerta
 
 ### `main.py`
 
-É o ponto de entrada da aplicação FastAPI. Registra os routers de `api/v1/` e disponibiliza `GET /health`, usado para verificar que o serviço iniciou corretamente.
+É o ponto de entrada da aplicação FastAPI. Registra os routers de `api/v1/` e disponibiliza `GET /health`, usado para verificar que o serviço iniciou corretamente. Também liga o CORS quando `CORS_ORIGIN_REGEX` está definida (necessário só para o app web).
 
 ## Arquivos importantes na raiz
 

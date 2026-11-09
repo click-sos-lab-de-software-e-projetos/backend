@@ -5,6 +5,7 @@ lançam a mesma exceção e gastam o mesmo tempo de bcrypt.
 """
 
 from functools import lru_cache
+from uuid import UUID
 
 from psycopg.errors import UniqueViolation
 from sqlalchemy import func, select
@@ -23,6 +24,10 @@ class EmailJaCadastrado(Exception):
 
 
 class CredenciaisInvalidas(Exception):
+    pass
+
+
+class UsuarioNaoEncontrado(Exception):
     pass
 
 
@@ -49,6 +54,13 @@ def autenticar(sessao: Session, email: str, senha: str) -> Usuario:
         raise CredenciaisInvalidas
     if not verificar_senha(senha, usuario.senha_hash):
         raise CredenciaisInvalidas
+    return usuario
+
+
+def obter(sessao: Session, usuario_id: UUID) -> Usuario:
+    usuario = sessao.get(Usuario, usuario_id)
+    if usuario is None:
+        raise UsuarioNaoEncontrado
     return usuario
 
 
