@@ -6,7 +6,7 @@ Grava o alerta como PENDENTE e devolve; o despacho por WhatsApp é do worker
 
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.orm import Session
 
 from app.db.models import AlertaSos, ContatoEmergencia, Usuario
@@ -43,13 +43,18 @@ def criar_alerta(sessao: Session, usuario_id: UUID, dados: CriarAlertaRequisicao
     return alerta
 
 
+def condicoes_contato_apto(usuario_id: UUID) -> tuple[ColumnElement[bool], ...]:
+    """Contato que pode receber o alerta: da pessoa, ativo e com consentimento (Regra 03)."""
+    return (
+        ContatoEmergencia.usuario_id == usuario_id,
+        ContatoEmergencia.ativo.is_(True),
+        ContatoEmergencia.consentido_em.is_not(None),
+    )
+
+
 def _contar_contatos_aptos(sessao: Session, usuario_id: UUID) -> int:
     return sessao.scalar(
         select(func.count())
         .select_from(ContatoEmergencia)
-        .where(
-            ContatoEmergencia.usuario_id == usuario_id,
-            ContatoEmergencia.ativo.is_(True),
-            ContatoEmergencia.consentido_em.is_not(None),
-        )
+        .where(*condicoes_contato_apto(usuario_id))
     )

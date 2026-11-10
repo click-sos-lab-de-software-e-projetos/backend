@@ -1,17 +1,19 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import obter_usuario_id
 from app.db.sessao import obter_sessao
 from app.schemas.sos import AlertaCriadoResposta, CriarAlertaRequisicao
 from app.services import alertas as servico
+from app.workers.despacho_sos import Despacho, obter_despacho
 
 # A pessoa usuária vem antes da sessão: sem token válido, o banco nem é aberto.
 UsuarioId = Annotated[UUID, Depends(obter_usuario_id)]
 Sessao = Annotated[Session, Depends(obter_sessao)]
+DespachoAlerta = Annotated[Despacho, Depends(obter_despacho)]
 
 MSG_SEM_CONTATOS = (
     "Nenhum contato ativo com consentimento registrado. "
@@ -40,9 +42,15 @@ router = APIRouter(prefix="/api/v1/sos", tags=["sos"])
         },
     },
 )
-def criar_alerta(dados: CriarAlertaRequisicao, usuario_id: UsuarioId, sessao: Sessao):
+def criar_alerta(
+    dados: CriarAlertaRequisicao,
+    usuario_id: UsuarioId,
+    sessao: Sessao,
+    despacho: DespachoAlerta,
+    tarefas: BackgroundTasks,
+):
     try:
-        return servico.criar_alerta(sessao, usuario_id, dados)
+        alerta = servico.criar_alerta(sessao, usuario_id, dados)
     except servico.UsuarioNaoEncontrado:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -53,3 +61,6 @@ def criar_alerta(dados: CriarAlertaRequisicao, usuario_id: UsuarioId, sessao: Se
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=MSG_SEM_CONTATOS
         ) from None
+    # Roda depois que a resposta sai: um WhatsApp lento não atrasa o app (SOS-06).
+    tarefas.add_task(despacho, alerta.id)
+    return alerta

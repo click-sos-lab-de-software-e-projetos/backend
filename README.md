@@ -1,6 +1,6 @@
 # Click S.O.S — Backend
 
-Base técnica inicial do backend do Click S.O.S. Neste estágio existem o cadastro e login com JWT em `/api/v1/auth` (AUTH-01), a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01), o consentimento do contato por link de uso único, a criação do alerta em `POST /api/v1/sos/alertas` (SOS-03), que grava o alerta como `PENDENTE`. As tabelas do mapa (`regioes_seguranca` e o schema `interno` com as ocorrências da SSP) já existem, mas ainda não há rota do mapa. O cliente da Evolution API para o WhatsApp existe (SOS-05), mas o alerta ainda não é enviado: o worker chega no SOS-06.
+Base técnica inicial do backend do Click S.O.S. Neste estágio existem o cadastro e login com JWT em `/api/v1/auth` (AUTH-01), a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01), o consentimento do contato por link de uso único, a criação do alerta em `POST /api/v1/sos/alertas` (SOS-03), que grava o alerta como `PENDENTE`. As tabelas do mapa (`regioes_seguranca` e o schema `interno` com as ocorrências da SSP) já existem, mas ainda não há rota do mapa. Depois da resposta, o alerta é enviado pelo WhatsApp aos contatos aptos, pela Evolution API (SOS-05 e SOS-06).
 
 ## Requisitos
 
@@ -96,7 +96,7 @@ Comportamentos esperados: e-mail já cadastrado responde `409`; senha errada ou 
      "UPDATE contatos_emergencia SET consentido_em = now() WHERE id = '<id-do-contato>'"
    ```
 
-   Sem isso, `POST /api/v1/sos/alertas` responde `422`. Com isso, responde `201` com o alerta `PENDENTE`; nenhuma mensagem é enviada, porque o envio chega no SOS-06. Use coordenadas sem significado também no banco local.
+   Sem isso, `POST /api/v1/sos/alertas` responde `422`. Com isso, responde `201` com o alerta `PENDENTE`; logo depois o worker envia a mensagem pelo WhatsApp a cada contato apto (veja "Envio por WhatsApp"). Sem as variáveis da Evolution, o alerta vira `ERRO`. Use coordenadas sem significado também no banco local.
 
 ## Envio por WhatsApp (Evolution API v2)
 

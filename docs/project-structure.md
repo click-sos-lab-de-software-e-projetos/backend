@@ -69,7 +69,7 @@ Regras de negócio. `auth.py` implementa o AUTH-01: cadastro com senha bcrypt, l
 
 ### `workers/`
 
-Reservada para tarefas executadas fora da resposta HTTP, como despacho do alerta S.O.S para a Evolution API/WhatsApp. Esse desacoplamento é necessário para que o aplicativo receba uma resposta rápida mesmo quando um serviço externo estiver lento.
+Tarefas executadas fora da resposta HTTP. `despacho_sos.py` (SOS-06) envia o alerta S.O.S pelo WhatsApp: a rota agenda o envio com `BackgroundTasks`, responde com o alerta `PENDENTE` e só então o worker, com sessão própria, manda a mensagem a cada contato apto e grava as tentativas. Assim o aplicativo recebe a resposta rápido mesmo quando a Evolution API está lenta. Sem as variáveis da Evolution, o alerta vira `ERRO`.
 
 ### `main.py`
 

@@ -2,7 +2,7 @@ from collections.abc import Iterator
 from functools import lru_cache
 
 from sqlalchemy import Engine, create_engine
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.db.config import normalizar_url, obter_url_banco
 
@@ -22,3 +22,8 @@ def obter_sessao() -> Iterator[Session]:
     """Dependência FastAPI: uma sessão por requisição. Quem grava faz o commit."""
     with Session(obter_engine(), expire_on_commit=False) as sessao:
         yield sessao
+
+
+def obter_fabrica_sessao() -> sessionmaker[Session]:
+    """Dependência FastAPI para quem roda depois da resposta (worker) e abre a própria sessão."""
+    return sessionmaker(obter_engine(), expire_on_commit=False)

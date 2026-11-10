@@ -7,12 +7,13 @@ import jwt
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.api.deps import obter_segredo_jwt
 from app.constants import LIMITE_MENSAGEM_SOS
-from app.db.sessao import criar_engine, obter_sessao
+from app.db.sessao import criar_engine, obter_fabrica_sessao, obter_sessao
 from app.main import app
+from app.workers.despacho_sos import obter_despacho
 from integracao.fabricas import inserir_contato, inserir_usuario
 
 SEGREDO_TESTE = "segredo-apenas-para-testes-com-32-bytes"
@@ -35,13 +36,23 @@ def engine_app(banco_migrado, url_teste):
 
 
 @pytest.fixture
-def client(engine_app):
+def agendados() -> list:
+    return []
+
+
+@pytest.fixture
+def client(engine_app, agendados):
     def _sessao_de_teste():
         with Session(engine_app, expire_on_commit=False) as sessao:
             yield sessao
 
     app.dependency_overrides[obter_segredo_jwt] = lambda: SEGREDO_TESTE
     app.dependency_overrides[obter_sessao] = _sessao_de_teste
+    app.dependency_overrides[obter_fabrica_sessao] = lambda: sessionmaker(
+        engine_app, expire_on_commit=False
+    )
+    # Por padrão o envio só é registrado; nenhum teste chama a Evolution real.
+    app.dependency_overrides[obter_despacho] = lambda: agendados.append
     yield TestClient(app)
     app.dependency_overrides.clear()
 
@@ -101,12 +112,16 @@ def criar_alerta_deve_gravar_ponto_mensagem_e_dono_do_token(client, banco_migrad
     assert (alerta.lat, alerta.lng, alerta.srid) == (LATITUDE, LONGITUDE, 4326)
 
 
-def criar_alerta_nao_deve_disparar_envio(client, banco_migrado, ana):
-    client.post(ROTA, json=CORPO, headers=_token(ana))
+def criar_alerta_deve_agendar_o_envio_do_alerta_criado(client, ana, agendados):
+    resposta = client.post(ROTA, json=CORPO, headers=_token(ana))
 
-    (alerta,) = _alertas(banco_migrado)
-    assert (alerta.status_envio, alerta.tentativas) == ("PENDENTE", 0)
-    assert _contar(banco_migrado, "tentativas_envio_sos") == 0
+    assert [str(alerta_id) for alerta_id in agendados] == [resposta.json()["id"]]
+
+
+def criar_alerta_recusado_nao_deve_agendar_envio(client, banco_migrado, agendados):
+    sem_contatos = _usuario(banco_migrado)
+    client.post(ROTA, json=CORPO, headers=_token(sem_contatos))
+    assert agendados == []
 
 
 @pytest.mark.parametrize("corpo", [CORPO, {**CORPO, "mensagem": ""}, {**CORPO, "mensagem": "   "}])
