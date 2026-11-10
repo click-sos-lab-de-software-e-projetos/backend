@@ -1,4 +1,4 @@
-"""Mapa de risco: recálculo do score dos distritos (MAP-05).
+"""Mapa de risco: recálculo do score (MAP-05) e consulta dos distritos (MAP-06/07).
 
 As tabelas do mapa pertencem à carga da SSP e do GeoSampa e não têm modelo
 ORM; por isso o acesso é por SQL explícito.
@@ -11,7 +11,7 @@ from datetime import date
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.constants import JANELA_SCORE_MESES
+from app.constants import JANELA_SCORE_MESES, LIMITE_REGIOES_MAPA
 from app.services.score_mapa import calcular_scores, raio_equivalente_metros
 
 _JANELA = text(
@@ -66,3 +66,33 @@ def recalcular_regioes(sessao: Session) -> ResumoRecalculo:
         distritos=len(linhas),
         por_cor=dict(Counter(score.cor_hex for score in scores.values())),
     )
+
+
+# Distância até a borda, em metros: o distrito onde o ponto está fica com 0 e vem primeiro.
+_PROXIMAS = text(
+    "WITH ponto AS (SELECT ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography AS g) "
+    "SELECT r.id_publico, r.nome, ST_Y(r.centroide) AS latitude, ST_X(r.centroide) AS longitude, "
+    "round(r.score_final)::int AS score, r.cor_hex, r.raio_metros "
+    "FROM regioes_seguranca r, ponto "
+    "WHERE ST_DWithin(r.limites::geography, ponto.g, :raio) "
+    "ORDER BY ST_Distance(r.limites::geography, ponto.g), r.id_publico "
+    "LIMIT :limite"
+)
+
+
+def listar_regioes_proximas(sessao: Session, latitude: float, longitude: float, raio_metros: int) -> list[dict]:
+    linhas = sessao.execute(
+        _PROXIMAS,
+        {"latitude": latitude, "longitude": longitude, "raio": raio_metros, "limite": LIMITE_REGIOES_MAPA},
+    ).all()
+    return [
+        {
+            "id": linha.id_publico,
+            "nome": linha.nome,
+            "centroide": {"latitude": linha.latitude, "longitude": linha.longitude},
+            "score": linha.score,
+            "cor_hex": linha.cor_hex,
+            "raio_metros": linha.raio_metros,
+        }
+        for linha in linhas
+    ]

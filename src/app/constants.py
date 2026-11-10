@@ -43,3 +43,7 @@ SCORE_MINIMO_VERMELHO = 67
 # Janela contada a partir da ocorrência mais recente no banco, não de hoje:
 # a carga da SSP é esporádica e o mapa não pode esvaziar entre cargas.
 JANELA_SCORE_MESES = 6
+# Consulta do mapa (MAP-06/07).
+RAIO_PADRAO_MAPA_M = 3000
+RAIO_MAXIMO_MAPA_M = 10000
+LIMITE_REGIOES_MAPA = 50

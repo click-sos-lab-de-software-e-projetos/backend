@@ -90,7 +90,8 @@ Propostas neste plano (confirmar na aprovação):
 
 ### Passo 6 — Parâmetros validados
 - **Arquivos:** `src/app/schemas/mapa.py` (novo), `src/app/api/v1/mapa.py`, `tests/test_rotas_mapa.py`.
-- **Teste (🔴):** unitário, `consulta_com_parametro_invalido_deve_responder_422` (sem latitude, latitude 91, raio 0, raio 10001) sem tocar no banco; OpenAPI documenta 200, 401 e 422.
+- **Teste (🔴):** unitário, `consulta_com_parametro_invalido_deve_responder_422` (sem latitude, latitude 91, raio 0, raio 10001); OpenAPI documenta 200, 401 e 422.
+- **Feito diferente:** o FastAPI cria a sessão mesmo com parâmetro inválido (resolve todas as dependências antes de responder 422). Como a sessão só conecta no primeiro uso, o teste confere que a consulta das regiões não roda, em vez de proibir a sessão.
 - **Implementar (🟢):** D13.
 
 ### Passo 7 — Distritos próximos, do mais perto ao mais longe, no máximo 50
@@ -109,8 +110,8 @@ Propostas neste plano (confirmar na aprovação):
 
 ## 5. Fechamento
 
-- [ ] `ruff check src tests migrations scripts` e `pytest` verdes; com `TEST_DATABASE_URL`, a suíte inteira verde.
-- [ ] Nada de URL do Neon ou credencial no diff.
+- [x] `ruff check src tests migrations scripts` e `pytest` verdes; com `TEST_DATABASE_URL`, a suíte inteira verde.
+- [x] Nada de URL do Neon ou credencial no diff.
 - [ ] Avisar a Yume: rodar `python scripts/recalcular_mapa.py` no Neon, conferir o resumo e só então `--gravar`.
 
 ## 6. Riscos

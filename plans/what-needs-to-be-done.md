@@ -189,11 +189,11 @@ Dados úteis das ocorrências:
   - aplicar as 3 faixas de cor; o raio continua por área equivalente;
   - feedback comunitário tem peso zero;
   - comando que regrava `score_oficial`, `score_final`, `cor_hex` e `raio_metros` dos 96 distritos.
-- [ ] MAP-06 e MAP-07: `GET /api/v1/mapa/regioes?latitude&longitude&raio`:
+- [x] MAP-06 e MAP-07: `GET /api/v1/mapa/regioes?latitude&longitude&raio`:
   - raio padrão de 3000 m; acima de 10000 m responde 422;
   - no máximo 50 regiões, das mais próximas para as mais distantes;
   - schema público com só ID público, nome, centroide, score, cor e raio.
-- [ ] MAP-08: teste de integração com PostGIS real.
+- [x] MAP-08: teste de integração com PostGIS real.
 
 **Frontend**
 - [ ] Trocar `HttpOccurrenceRepository` (`/occurrences`, rota que não existe) por um repositório de `/mapa/regioes`.

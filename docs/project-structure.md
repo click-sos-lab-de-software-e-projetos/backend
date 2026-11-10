@@ -49,7 +49,7 @@ Contém os testes automatizados Python. O pre-commit executa toda esta suíte us
 
 ### `api/`
 
-Rotas HTTP e dependências de rota. `deps.py` obtém a pessoa usuária do Bearer Token (SOS-01). As rotas versionadas ficam em `v1/`, um módulo por recurso: hoje, `v1/auth.py` (AUTH-01), `v1/contatos.py` (CONT-01) e `v1/sos.py` (SOS-03: criação e consulta do status do alerta). As rotas só traduzem HTTP: validam a entrada pelos schemas, delegam para `services/` e convertem as exceções do serviço em códigos de status.
+Rotas HTTP e dependências de rota. `deps.py` obtém a pessoa usuária do Bearer Token (SOS-01). As rotas versionadas ficam em `v1/`, um módulo por recurso: hoje, `v1/auth.py` (AUTH-01), `v1/contatos.py` (CONT-01) `v1/sos.py` (SOS-03: criação e consulta do status do alerta) e `v1/mapa.py` (MAP-06/07: distritos próximos). As rotas só traduzem HTTP: validam a entrada pelos schemas, delegam para `services/` e convertem as exceções do serviço em códigos de status.
 
 ### `core/`
 

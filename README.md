@@ -1,6 +1,6 @@
 # Click S.O.S — Backend
 
-Base técnica inicial do backend do Click S.O.S. Neste estágio existem o cadastro e login com JWT em `/api/v1/auth` (AUTH-01), a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01), o consentimento do contato por link de uso único, a criação do alerta em `POST /api/v1/sos/alertas` (SOS-03), que grava o alerta como `PENDENTE`, e a consulta do status em `GET /api/v1/sos/alertas/{id}`. As tabelas do mapa (`regioes_seguranca` e o schema `interno` com as ocorrências da SSP) já existem, mas ainda não há rota do mapa. Depois da resposta, o alerta é enviado pelo WhatsApp aos contatos aptos, pela Evolution API (SOS-05 e SOS-06).
+Base técnica inicial do backend do Click S.O.S. Neste estágio existem o cadastro e login com JWT em `/api/v1/auth` (AUTH-01), a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01), o consentimento do contato por link de uso único, a criação do alerta em `POST /api/v1/sos/alertas` (SOS-03), que grava o alerta como `PENDENTE`, e a consulta do status em `GET /api/v1/sos/alertas/{id}`. As tabelas do mapa (`regioes_seguranca` e o schema `interno` com as ocorrências da SSP) já existem, e `GET /api/v1/mapa/regioes` devolve os distritos próximos com score e cor (veja "Mapa de risco"). Depois da resposta, o alerta é enviado pelo WhatsApp aos contatos aptos, pela Evolution API (SOS-05 e SOS-06).
 
 ## Requisitos
 
@@ -149,6 +149,8 @@ python scripts/recalcular_mapa.py --gravar   # regrava os distritos
 ```
 
 O score vai de 0 a 100: soma dos pesos das ocorrências dos 6 meses anteriores à ocorrência mais recente, dividida pela área do distrito, relativa ao distrito mais denso. Faixas: verde abaixo de 34, amarelo de 34 a 66 e vermelho a partir de 67. Antes de `--gravar`, confira no resumo se a janela de datas faz sentido: uma ocorrência com data futura por erro esvaziaria o mapa.
+
+O app consulta `GET /api/v1/mapa/regioes?latitude=...&longitude=...&raio=3000` com o token (MAP-06/07). A resposta lista no máximo 50 distritos com a borda a até `raio` metros do ponto, do mais próximo ao mais distante, cada um com `id` público, `nome`, `centroide`, `score`, `cor_hex` e `raio_metros`. O raio padrão é 3000 m e o máximo, 10000 m; fora disso, `422`.
 
 ## Testes e pre-commit
 
