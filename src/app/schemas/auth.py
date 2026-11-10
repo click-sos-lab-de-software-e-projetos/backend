@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 from uuid import UUID
 
 from pydantic import (
@@ -8,6 +8,7 @@ from pydantic import (
     ConfigDict,
     EmailStr,
     StringConstraints,
+    model_validator,
 )
 
 from app.constants import (
@@ -64,6 +65,39 @@ class LoginRequisicao(BaseModel):
 
     email: Email
     senha: Annotated[str, StringConstraints(min_length=1)]
+
+
+class AtualizarPerfilRequisicao(BaseModel):
+    """PATCH parcial: só os campos enviados mudam. O e-mail não é editável."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={"examples": [{"telefone_pessoal": "+5500911111111"}]},
+    )
+
+    # Sem `| None`: o padrão nunca é validado, e `null` enviado explicitamente vira 422.
+    nome_completo: NomeCompleto = None
+    telefone_pessoal: TelefoneE164 = None
+
+    @model_validator(mode="after")
+    def _ao_menos_um_campo(self) -> Self:
+        if not self.model_fields_set:
+            raise ValueError("Envie ao menos um campo para alterar.")
+        return self
+
+
+class TrocarSenhaRequisicao(BaseModel):
+    """A senha nova segue a política do cadastro; a atual, só não pode ser vazia."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [{"senha_atual": "senha-ficticia", "senha_nova": "senha-ficticia-nova"}]
+        },
+    )
+
+    senha_atual: Annotated[str, StringConstraints(min_length=1)]
+    senha_nova: SenhaNova
 
 
 class UsuarioResposta(BaseModel):

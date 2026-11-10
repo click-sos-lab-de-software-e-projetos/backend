@@ -224,8 +224,8 @@ Dados úteis das ocorrências:
 ## Tarefa 7 — Perfil editável
 
 **Backend**
-- [ ] `PATCH /api/v1/auth/me` com `nome_completo` e `telefone_pessoal`.
-- [ ] Opcional: troca de senha, exigindo a senha atual.
+- [x] `PATCH /api/v1/auth/me` com `nome_completo` e `telefone_pessoal`.
+- [x] Opcional: troca de senha, exigindo a senha atual.
 
 **Frontend**
 - [ ] Hoje `EditProfileScreen` só altera o estado local. Passar a chamar a API.

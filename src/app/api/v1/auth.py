@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import obter_segredo_jwt, obter_usuario_id, obter_validade_jwt_min
@@ -9,9 +9,11 @@ from app.constants import TAMANHO_MINIMO_SENHA
 from app.core.security import emitir_token
 from app.db.sessao import obter_sessao
 from app.schemas.auth import (
+    AtualizarPerfilRequisicao,
     CadastroRequisicao,
     LoginRequisicao,
     TokenResposta,
+    TrocarSenhaRequisicao,
     UsuarioResposta,
 )
 from app.services import auth as servico
@@ -24,6 +26,8 @@ ValidadeMin = Annotated[int, Depends(obter_validade_jwt_min)]
 
 MSG_EMAIL_EM_USO = "E-mail já cadastrado."
 MSG_CREDENCIAIS = "E-mail ou senha inválidos."
+MSG_SENHA_ATUAL = "Senha atual incorreta."
+RESPOSTA_401 = {401: {"description": "Token ausente, inválido ou expirado."}}
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -86,14 +90,63 @@ def login(dados: LoginRequisicao, sessao: Sessao, segredo: Segredo, validade_min
     response_model=UsuarioResposta,
     summary="Ver meu perfil",
     description="Devolve a pessoa usuária do token, sem senha nem hash.",
-    responses={401: {"description": "Token ausente, inválido ou expirado."}},
+    responses=RESPOSTA_401,
 )
 def obter_perfil(usuario_id: UsuarioId, sessao: Sessao):
     try:
         return servico.obter(sessao, usuario_id)
     except servico.UsuarioNaoEncontrado:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Não autenticado.",
-            headers={"WWW-Authenticate": "Bearer"},
-        ) from None
+        raise _nao_autenticado() from None
+
+
+@router.patch(
+    "/me",
+    response_model=UsuarioResposta,
+    summary="Editar meu perfil",
+    description=(
+        "Altera `nome_completo` e/ou `telefone_pessoal`; só os campos enviados mudam. "
+        "O e-mail não é editável."
+    ),
+    responses={
+        **RESPOSTA_401,
+        422: {"description": "Corpo vazio, campo nulo, valor inválido ou campo não editável (como `email`)."},
+    },
+)
+def editar_perfil(dados: AtualizarPerfilRequisicao, usuario_id: UsuarioId, sessao: Sessao):
+    try:
+        return servico.atualizar_perfil(sessao, usuario_id, dados)
+    except servico.UsuarioNaoEncontrado:
+        raise _nao_autenticado() from None
+
+
+@router.post(
+    "/me/senha",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    summary="Trocar minha senha",
+    description=(
+        f"Exige a senha atual. A nova precisa de ao menos {TAMANHO_MINIMO_SENHA} caracteres. "
+        "Tokens já emitidos continuam válidos até expirar."
+    ),
+    responses={
+        400: {"description": MSG_SENHA_ATUAL},
+        **RESPOSTA_401,
+        422: {"description": "Corpo inválido (senha nova fora da política ou campo extra)."},
+    },
+)
+def trocar_senha(dados: TrocarSenhaRequisicao, usuario_id: UsuarioId, sessao: Sessao):
+    try:
+        servico.trocar_senha(sessao, usuario_id, dados.senha_atual, dados.senha_nova)
+    except servico.UsuarioNaoEncontrado:
+        raise _nao_autenticado() from None
+    except servico.SenhaAtualIncorreta:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=MSG_SENHA_ATUAL) from None
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+def _nao_autenticado() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Não autenticado.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )

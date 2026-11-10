@@ -165,3 +165,74 @@ def me_de_usuario_removido_deve_responder_401(client, banco_migrado):
     resposta = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
 
     assert resposta.status_code == 401
+
+
+# --- edição do perfil e troca de senha -------------------------------------------
+
+
+def _cadastrar_e_entrar(client) -> dict[str, str]:
+    client.post(CADASTRO, json=CORPO)
+    return {"Authorization": f"Bearer {_login(client).json()['access_token']}"}
+
+
+def editar_perfil_deve_mudar_so_os_campos_enviados(client):
+    cabecalhos = _cadastrar_e_entrar(client)
+
+    resposta = client.patch("/api/v1/auth/me", json={"telefone_pessoal": "+5500911111111"}, headers=cabecalhos)
+
+    assert resposta.status_code == 200
+    assert resposta.json()["telefone_pessoal"] == "+5500911111111"
+    perfil = client.get("/api/v1/auth/me", headers=cabecalhos).json()
+    assert (perfil["nome_completo"], perfil["email"], perfil["telefone_pessoal"]) == (
+        CORPO["nome_completo"],
+        CORPO["email"],
+        "+5500911111111",
+    )
+
+    client.patch("/api/v1/auth/me", json={"nome_completo": " Nome Novo "}, headers=cabecalhos)
+    perfil = client.get("/api/v1/auth/me", headers=cabecalhos).json()
+    assert (perfil["nome_completo"], perfil["telefone_pessoal"]) == ("Nome Novo", "+5500911111111")
+
+
+def trocar_senha_com_a_senha_atual_deve_valer_no_proximo_login(client):
+    cabecalhos = _cadastrar_e_entrar(client)
+
+    resposta = client.post(
+        "/api/v1/auth/me/senha", json={"senha_atual": SENHA, "senha_nova": "senha-nova-456"}, headers=cabecalhos
+    )
+
+    assert resposta.status_code == 204
+    assert resposta.content == b""
+    assert _login(client, senha="senha-nova-456").status_code == 200
+    assert _login(client).status_code == 401
+
+
+def trocar_senha_com_a_senha_atual_errada_deve_responder_400_sem_mudar(client):
+    cabecalhos = _cadastrar_e_entrar(client)
+
+    resposta = client.post(
+        "/api/v1/auth/me/senha", json={"senha_atual": "errada", "senha_nova": "senha-nova-456"}, headers=cabecalhos
+    )
+
+    assert resposta.status_code == 400
+    assert _login(client).status_code == 200
+    assert _login(client, senha="senha-nova-456").status_code == 401
+
+
+@pytest.mark.parametrize(
+    ("metodo", "caminho", "corpo"),
+    [
+        ("patch", "/api/v1/auth/me", {"nome_completo": "Nome Novo"}),
+        ("post", "/api/v1/auth/me/senha", {"senha_atual": SENHA, "senha_nova": "senha-nova-456"}),
+    ],
+)
+def alterar_perfil_ou_senha_de_usuario_removido_deve_responder_401(client, banco_migrado, metodo, caminho, corpo):
+    usuario_id = client.post(CADASTRO, json=CORPO).json()["id"]
+    cabecalhos = {"Authorization": f"Bearer {_login(client).json()['access_token']}"}
+    with banco_migrado.begin() as conexao:
+        conexao.execute(text("DELETE FROM usuarios WHERE id = :id"), {"id": usuario_id})
+
+    resposta = client.request(metodo, caminho, json=corpo, headers=cabecalhos)
+
+    assert resposta.status_code == 401
+    assert resposta.headers["www-authenticate"] == "Bearer"

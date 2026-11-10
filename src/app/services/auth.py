@@ -1,4 +1,4 @@
-"""Cadastro e login (AUTH-01, Regra 09).
+"""Cadastro, login e perfil (AUTH-01, Tarefa 7, Regra 09).
 
 O login não revela se o e-mail existe: e-mail desconhecido e senha errada
 lançam a mesma exceção e gastam o mesmo tempo de bcrypt.
@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import gerar_hash_senha, verificar_senha
 from app.db.models import Usuario
-from app.schemas.auth import CadastroRequisicao
+from app.schemas.auth import AtualizarPerfilRequisicao, CadastroRequisicao
 
 INDICE_EMAIL_UNICO = "uq_usuarios_email_minusculo"
 
@@ -28,6 +28,10 @@ class CredenciaisInvalidas(Exception):
 
 
 class UsuarioNaoEncontrado(Exception):
+    pass
+
+
+class SenhaAtualIncorreta(Exception):
     pass
 
 
@@ -62,6 +66,23 @@ def obter(sessao: Session, usuario_id: UUID) -> Usuario:
     if usuario is None:
         raise UsuarioNaoEncontrado
     return usuario
+
+
+def atualizar_perfil(sessao: Session, usuario_id: UUID, dados: AtualizarPerfilRequisicao) -> Usuario:
+    usuario = obter(sessao, usuario_id)
+    for campo, valor in dados.model_dump(exclude_unset=True).items():
+        setattr(usuario, campo, valor)
+    sessao.commit()
+    return usuario
+
+
+def trocar_senha(sessao: Session, usuario_id: UUID, senha_atual: str, senha_nova: str) -> None:
+    """Tokens emitidos antes continuam válidos até expirar: não há lista de revogação."""
+    usuario = obter(sessao, usuario_id)
+    if not verificar_senha(senha_atual, usuario.senha_hash):
+        raise SenhaAtualIncorreta
+    usuario.senha_hash = gerar_hash_senha(senha_nova)
+    sessao.commit()
 
 
 def _violou_email_unico(erro: IntegrityError) -> bool:

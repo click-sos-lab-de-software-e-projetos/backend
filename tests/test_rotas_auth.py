@@ -1,3 +1,7 @@
+import time
+from uuid import uuid4
+
+import jwt
 import pytest
 from fastapi.testclient import TestClient
 
@@ -5,6 +9,9 @@ from app.api.deps import obter_segredo_jwt, obter_validade_jwt_min
 from app.constants import EXPIRACAO_JWT_PADRAO_MIN, NOME_VARIAVEL_EXPIRACAO_JWT
 from app.db.sessao import obter_sessao
 from app.main import app
+from app.services import auth as servico
+
+SEGREDO_TESTE = "segredo-apenas-para-testes-com-32-bytes"
 
 
 class _SessaoProibida:
@@ -14,7 +21,7 @@ class _SessaoProibida:
 
 @pytest.fixture
 def client():
-    app.dependency_overrides[obter_segredo_jwt] = lambda: "segredo-apenas-para-testes-com-32-bytes"
+    app.dependency_overrides[obter_segredo_jwt] = lambda: SEGREDO_TESTE
     app.dependency_overrides[obter_sessao] = _SessaoProibida
     yield TestClient(app)
     app.dependency_overrides.clear()
@@ -70,3 +77,58 @@ def openapi_deve_documentar_me_como_rota_privada():
     me = app.openapi()["paths"]["/api/v1/auth/me"]["get"]
     assert {"HTTPBearer": []} in me["security"]
     assert "401" in me["responses"]
+
+
+ME = "/api/v1/auth/me"
+SENHA_ME = "/api/v1/auth/me/senha"
+
+
+def _token() -> dict[str, str]:
+    payload = {"sub": str(uuid4()), "exp": int(time.time()) + 300}
+    return {"Authorization": f"Bearer {jwt.encode(payload, SEGREDO_TESTE, algorithm='HS256')}"}
+
+
+def _servico_proibido(*_):
+    raise AssertionError("A rota chamou o serviço com corpo inválido.")
+
+
+@pytest.mark.parametrize(
+    ("metodo", "caminho", "corpo"),
+    [
+        ("patch", ME, {"nome_completo": "Outro Nome"}),
+        ("post", SENHA_ME, {"senha_atual": "atual", "senha_nova": "senha-nova-123"}),
+    ],
+)
+def alterar_perfil_ou_senha_sem_token_deve_responder_401_sem_usar_o_banco(client, metodo, caminho, corpo):
+    resposta = client.request(metodo, caminho, json=corpo)
+    assert resposta.status_code == 401
+    assert resposta.headers["www-authenticate"] == "Bearer"
+
+
+@pytest.mark.parametrize(
+    ("metodo", "caminho", "corpo"),
+    [
+        ("patch", ME, {}),
+        ("patch", ME, {"email": "outra@example.com"}),
+        ("patch", ME, {"telefone_pessoal": None}),
+        ("post", SENHA_ME, {"senha_atual": "atual", "senha_nova": "curta"}),
+    ],
+)
+def alterar_perfil_ou_senha_com_corpo_invalido_deve_responder_422_sem_chamar_o_servico(
+    client, metodo, caminho, corpo, monkeypatch
+):
+    app.dependency_overrides[obter_sessao] = lambda: None
+    monkeypatch.setattr(servico, "atualizar_perfil", _servico_proibido, raising=False)
+    monkeypatch.setattr(servico, "trocar_senha", _servico_proibido, raising=False)
+
+    assert client.request(metodo, caminho, json=corpo, headers=_token()).status_code == 422
+
+
+def openapi_deve_documentar_edicao_do_perfil_e_troca_de_senha_como_rotas_privadas():
+    caminhos = app.openapi()["paths"]
+    patch = caminhos[ME]["patch"]
+    senha = caminhos[SENHA_ME]["post"]
+    assert {"200", "401", "422"} <= set(patch["responses"])
+    assert {"204", "400", "401", "422"} <= set(senha["responses"])
+    assert {"HTTPBearer": []} in patch["security"]
+    assert {"HTTPBearer": []} in senha["security"]

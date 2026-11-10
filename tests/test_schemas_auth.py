@@ -3,7 +3,13 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.auth import CadastroRequisicao, LoginRequisicao, UsuarioResposta
+from app.schemas.auth import (
+    AtualizarPerfilRequisicao,
+    CadastroRequisicao,
+    LoginRequisicao,
+    TrocarSenhaRequisicao,
+    UsuarioResposta,
+)
 
 CADASTRO = {
     "nome_completo": "Pessoa Ficticia",
@@ -74,3 +80,58 @@ def resposta_usuario_nao_deve_expor_senha_nem_hash():
         "telefone_pessoal",
         "criado_em",
     }
+
+
+@pytest.mark.parametrize(
+    "corpo",
+    [
+        {"nome_completo": "Outro Nome"},
+        {"telefone_pessoal": "+5500911111111"},
+        {"nome_completo": "Outro Nome", "telefone_pessoal": "+5500911111111"},
+    ],
+)
+def atualizar_perfil_deve_aceitar_campos_parciais(corpo):
+    assert AtualizarPerfilRequisicao.model_validate(corpo).model_dump(exclude_unset=True) == corpo
+
+
+def atualizar_perfil_deve_tirar_espacos_do_nome():
+    assert AtualizarPerfilRequisicao.model_validate({"nome_completo": "  Nome  "}).nome_completo == "Nome"
+
+
+@pytest.mark.parametrize(
+    "corpo",
+    [
+        {},
+        {"nome_completo": None},
+        {"telefone_pessoal": None},
+        {"nome_completo": "   "},
+        {"telefone_pessoal": "11999999999"},
+        {"email": "outra@example.com"},
+        {"nome_completo": "Nome", "senha": "senha-ficticia"},
+    ],
+    ids=["vazio", "nome-nulo", "telefone-nulo", "nome-branco", "telefone-sem-e164", "email", "senha"],
+)
+def atualizar_perfil_invalido_deve_ser_rejeitado(corpo):
+    with pytest.raises(ValidationError):
+        AtualizarPerfilRequisicao.model_validate(corpo)
+
+
+def trocar_senha_valida_deve_ser_aceita():
+    dados = TrocarSenhaRequisicao.model_validate({"senha_atual": "x", "senha_nova": "a" * 72})
+    assert (dados.senha_atual, dados.senha_nova) == ("x", "a" * 72)
+
+
+@pytest.mark.parametrize(
+    "corpo",
+    [
+        {"senha_atual": "", "senha_nova": "senha-nova-123"},
+        {"senha_atual": "atual", "senha_nova": "curta"},
+        {"senha_atual": "atual", "senha_nova": "ç" * 37},
+        {"senha_nova": "senha-nova-123"},
+        {"senha_atual": "atual", "senha_nova": "senha-nova-123", "email": "a@example.com"},
+    ],
+    ids=["atual-vazia", "nova-curta", "nova-acima-72-bytes", "sem-atual", "campo-extra"],
+)
+def trocar_senha_invalida_deve_ser_rejeitada(corpo):
+    with pytest.raises(ValidationError):
+        TrocarSenhaRequisicao.model_validate(corpo)

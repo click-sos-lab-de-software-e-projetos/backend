@@ -1,6 +1,6 @@
 # Click S.O.S — Backend
 
-Base técnica inicial do backend do Click S.O.S. Neste estágio existem o cadastro e login com JWT em `/api/v1/auth` (AUTH-01), a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01), o consentimento do contato por link de uso único, a criação do alerta em `POST /api/v1/sos/alertas` (SOS-03), que grava o alerta como `PENDENTE`, e a consulta do status em `GET /api/v1/sos/alertas/{id}`. As tabelas do mapa (`regioes_seguranca` e o schema `interno` com as ocorrências da SSP) já existem, `GET /api/v1/mapa/regioes` devolve os distritos próximos com score e cor, e `POST /api/v1/mapa/regioes/{id}/feedbacks` recebe o feedback da comunidade (veja "Mapa de risco"). Depois da resposta, o alerta é enviado pelo WhatsApp aos contatos aptos, pela Evolution API (SOS-05 e SOS-06).
+Base técnica inicial do backend do Click S.O.S. Neste estágio existem o cadastro e login com JWT em `/api/v1/auth` (AUTH-01), a edição do perfil e a troca de senha (Tarefa 7), a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01), o consentimento do contato por link de uso único, a criação do alerta em `POST /api/v1/sos/alertas` (SOS-03), que grava o alerta como `PENDENTE`, e a consulta do status em `GET /api/v1/sos/alertas/{id}`. As tabelas do mapa (`regioes_seguranca` e o schema `interno` com as ocorrências da SSP) já existem, `GET /api/v1/mapa/regioes` devolve os distritos próximos com score e cor, e `POST /api/v1/mapa/regioes/{id}/feedbacks` recebe o feedback da comunidade (veja "Mapa de risco"). Depois da resposta, o alerta é enviado pelo WhatsApp aos contatos aptos, pela Evolution API (SOS-05 e SOS-06).
 
 ## Requisitos
 
@@ -34,7 +34,7 @@ Com a aplicação iniciada, consulte `http://localhost:8000/health`. A documenta
 
 ## Testar as rotas privadas no Swagger
 
-As rotas de `/api/v1/contatos` e `/api/v1/sos/alertas` exigem um banco migrado e um JWT, obtido pelo cadastro e login de `/api/v1/auth` (AUTH-01). O token vale 24 horas (ajuste com `JWT_EXPIRACAO_MIN`) e não é renovado: ao expirar, faça login de novo. `GET /api/v1/auth/me` devolve o perfil da pessoa dona do token.
+As rotas de `/api/v1/contatos` e `/api/v1/sos/alertas` exigem um banco migrado e um JWT, obtido pelo cadastro e login de `/api/v1/auth` (AUTH-01). O token vale 24 horas (ajuste com `JWT_EXPIRACAO_MIN`) e não é renovado: ao expirar, faça login de novo. `GET /api/v1/auth/me` devolve o perfil da pessoa dona do token. `PATCH /api/v1/auth/me` altera `nome_completo` e/ou `telefone_pessoal` (só os campos enviados; o e-mail não é editável). `POST /api/v1/auth/me/senha` com `{"senha_atual", "senha_nova"}` troca a senha e responde `204`; senha atual errada responde `400`. Tokens emitidos antes da troca continuam válidos até expirar.
 
 ### Consentimento do contato
 
