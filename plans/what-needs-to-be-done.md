@@ -112,8 +112,8 @@ O cliente do SOS-05 deve chamar `POST {EVOLUTION_API_URL}/message/sendText/{EVOL
   - teste ponta a ponta com a Evolution API falsa.
 
 **Frontend**
-- [ ] Nada a mudar no envio: o app já cria o alerta.
-- [ ] Depende da Tarefa 3 para mostrar o resultado do envio.
+- [x] Nada a mudar no envio: o app já cria o alerta.
+- [x] Depende da Tarefa 3 para mostrar o resultado do envio.
 
 ## Tarefa 3 — Consultar o status do alerta (Regra 04 · SOSM-05)
 
@@ -125,10 +125,10 @@ O cliente do SOS-05 deve chamar `POST {EVOLUTION_API_URL}/message/sendText/{EVOL
 - [ ] Opcional: `GET /api/v1/sos/alertas` com os últimos alertas da pessoa.
 
 **Frontend**
-- [ ] Ler o `id` da resposta do `POST /sos/alertas`. Hoje o `AlertRepository.send` descarta a resposta.
-- [ ] Consultar o status do alerta a cada poucos segundos, até `ENVIADO` ou `ERRO`.
-- [ ] Mostrar o estado `PENDENTE`, `ENVIADO` ou `ERRO`.
-- [ ] Oferecer o `wa.me` só como alternativa explícita (SOSM-05).
+- [x] Ler o `id` da resposta do `POST /sos/alertas`.
+- [x] Consultar o status do alerta a cada 3 s, até `ENVIADO` ou `ERRO` (para depois de 2 min e mostra "ainda enviando").
+- [x] Mostrar o estado `PENDENTE`, `ENVIADO` ou `ERRO`.
+- [x] Oferecer o `wa.me` só como alternativa explícita (SOSM-05).
 
 ## Tarefa 4 — Fluxo S.O.S no app (SOSM-03 · SOSM-04 · Regra 02)
 
@@ -136,14 +136,12 @@ O cliente do SOS-05 deve chamar `POST {EVOLUTION_API_URL}/message/sendText/{EVOL
 - [x] Nada novo. Só confirmar que a mensagem padrão da Regra 02 é usada quando `mensagem` vem vazia.
 
 **Frontend**
-- [ ] Antes de pedir a localização no fluxo S.O.S:
+- [x] Antes de pedir a localização no fluxo S.O.S:
   - explicar por que ela é necessária;
   - tratar permissão negada e GPS desligado com mensagens claras.
-- [ ] Depois de segurar o botão:
-  - abrir um diálogo de confirmação;
-  - incluir um campo de mensagem livre de até **255** caracteres. Hoje o limite em Ajustes é 160 e o texto é fixo.
-- [ ] Enviar `mensagem` vazia quando a pessoa não escrever nada, para o backend usar a mensagem padrão. Hoje o app sempre envia o texto de Ajustes.
-- [ ] Mostrar o aviso de privacidade aprovado antes do primeiro envio.
+- [x] ~~Depois de segurar o botão, abrir um diálogo com campo de mensagem livre.~~ Trocado por decisão da Yume: um toque com 5 s para cancelar, sem digitar nada. A mensagem (até **255**) é configurada em Ajustes e salva por usuário no backend (`usuarios.mensagem_sos`, `PATCH /auth/me`).
+- [x] O app nunca envia `mensagem`: o backend usa a mensagem salva do usuário ou a padrão.
+- [x] Mostrar o aviso de privacidade aprovado: fica fixo na tela de Emergência, abaixo do botão.
 
 ## Tarefa 5 — Mapa de risco (MAP-01 a MAP-03 · MAP-05 a MAP-08 · MAPM-01 a MAPM-03)
 
