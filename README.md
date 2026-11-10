@@ -1,6 +1,6 @@
 # Click S.O.S — Backend
 
-Base técnica inicial do backend do Click S.O.S. Neste estágio existem o cadastro e login com JWT em `/api/v1/auth` (AUTH-01), a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01), o consentimento do contato por link de uso único, a criação do alerta em `POST /api/v1/sos/alertas` (SOS-03), que grava o alerta como `PENDENTE`. As tabelas do mapa (`regioes_seguranca` e o schema `interno` com as ocorrências da SSP) já existem, mas ainda não há rota do mapa nem envio por WhatsApp.
+Base técnica inicial do backend do Click S.O.S. Neste estágio existem o cadastro e login com JWT em `/api/v1/auth` (AUTH-01), a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01), o consentimento do contato por link de uso único, a criação do alerta em `POST /api/v1/sos/alertas` (SOS-03), que grava o alerta como `PENDENTE`. As tabelas do mapa (`regioes_seguranca` e o schema `interno` com as ocorrências da SSP) já existem, mas ainda não há rota do mapa. O cliente da Evolution API para o WhatsApp existe (SOS-05), mas o alerta ainda não é enviado: o worker chega no SOS-06.
 
 ## Requisitos
 
@@ -98,6 +98,44 @@ Comportamentos esperados: e-mail já cadastrado responde `409`; senha errada ou 
 
    Sem isso, `POST /api/v1/sos/alertas` responde `422`. Com isso, responde `201` com o alerta `PENDENTE`; nenhuma mensagem é enviada, porque o envio chega no SOS-06. Use coordenadas sem significado também no banco local.
 
+## Envio por WhatsApp (Evolution API v2)
+
+O cliente do SOS-05 (`app/services/whatsapp.py`) envia texto pela Evolution API. Os testes automatizados nunca usam rede; para um envio real em dev, suba a Evolution localmente com um Postgres próprio (nunca o Neon nem o banco de testes):
+
+```bash
+podman network create evolution
+podman run -d --name evolution-db --network evolution \
+  -e POSTGRES_USER=evolution -e POSTGRES_PASSWORD=evolution -e POSTGRES_DB=evolution postgres:16
+podman run -d --name evolution-api --network evolution -p 8080:8080 \
+  -e AUTHENTICATION_API_KEY=<chave longa, ex.: openssl rand -hex 32> \
+  -e DATABASE_PROVIDER=postgresql \
+  -e DATABASE_CONNECTION_URI=postgresql://evolution:evolution@evolution-db:5432/evolution \
+  -e CACHE_REDIS_ENABLED=false -e CACHE_LOCAL_ENABLED=true \
+  evoapicloud/evolution-api:latest
+```
+
+(Com Docker, troque `podman` por `docker`.) Depois:
+
+1. No `.env`: `EVOLUTION_API_URL=http://localhost:8080`, `EVOLUTION_API_KEY=<a mesma chave>` e `EVOLUTION_INSTANCE=click-sos-dev`. Carregue-o com `set -a; source .env; set +a`.
+2. Crie a instância:
+   ```bash
+   curl -X POST "$EVOLUTION_API_URL/instance/create" -H "apikey: $EVOLUTION_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{"instanceName": "click-sos-dev", "integration": "WHATSAPP-BAILEYS", "qrcode": true}'
+   ```
+3. Leia o QR code no celular (WhatsApp → *Aparelhos conectados*). O QR aparece no painel `http://localhost:8080/manager` ou em `GET /instance/connect/click-sos-dev`. Confira com `GET /instance/connectionState/click-sos-dev`: o estado deve ser `open`.
+4. Envie só para o seu próprio número:
+   ```bash
+   python -c "from app.services.whatsapp import criar_enviador_evolution as c; print(c().enviar('+55SEUNUMERO', 'Teste Click S.O.S'))"
+   ```
+   Espera-se `ENVIADO`. Chave errada dá `FALHA_DEFINITIVA`/`HTTP_401`, e a Evolution parada dá `FALHA_TEMPORARIA`/`CONEXAO`.
+5. Ao terminar, desconecte o número:
+   ```bash
+   curl -X DELETE "$EVOLUTION_API_URL/instance/logout/click-sos-dev" -H "apikey: $EVOLUTION_API_KEY"
+   ```
+
+Com um número pessoal, evite rajadas de mensagens: o WhatsApp pode banir números que enviam muitas mensagens automáticas.
+
 ## Testes e pre-commit
 
 ```bash
@@ -161,7 +199,7 @@ O `render.yaml` descreve o web service no plano gratuito. No Render, crie um **B
 - `DATABASE_URL`: URL do Neon (`postgresql://...`; o driver `psycopg` é colocado automaticamente);
 - `CORS_ORIGIN_REGEX`: origens da página de consentimento e do app web, separadas por `|`;
 - `CONSENTIMENTO_URL_BASE`: endereço da página `tela-consentimento`;
-- `EVOLUTION_API_URL` e `EVOLUTION_API_KEY`: quando o envio por WhatsApp existir.
+- `EVOLUTION_API_URL`, `EVOLUTION_API_KEY` e `EVOLUTION_INSTANCE`: quando o envio por WhatsApp existir.
 
 `JWT_SECRET_KEY` é gerada pelo Render. Cada deploy roda `alembic upgrade head` antes de subir o `uvicorn`. O serviço gratuito dorme depois de uns 15 minutos sem requisições; veja o roteiro da apresentação na Tarefa 11 de `plans/what-needs-to-be-done.md`.
 

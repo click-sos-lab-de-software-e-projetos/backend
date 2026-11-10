@@ -23,3 +23,5 @@ services:
         sync: false
       - key: EVOLUTION_API_KEY
         sync: false
+      - key: EVOLUTION_INSTANCE
+        sync: false
