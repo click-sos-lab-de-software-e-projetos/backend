@@ -37,7 +37,8 @@ def obter_alerta(sessao: Session, usuario_id: UUID, alerta_id: UUID) -> AlertaSo
 
 
 def criar_alerta(sessao: Session, usuario_id: UUID, dados: CriarAlertaRequisicao) -> AlertaSos:
-    if sessao.get(Usuario, usuario_id) is None:
+    usuario = sessao.get(Usuario, usuario_id)
+    if usuario is None:
         raise UsuarioNaoEncontrado
     if _contar_contatos_aptos(sessao, usuario_id) == 0:
         raise SemContatosAptos
@@ -46,8 +47,9 @@ def criar_alerta(sessao: Session, usuario_id: UUID, dados: CriarAlertaRequisicao
         usuario_id=usuario_id,
         # ST_MakePoint recebe longitude primeiro (x, y).
         localizacao=func.ST_SetSRID(func.ST_MakePoint(dados.longitude, dados.latitude), SRID_WGS84),
-        # Vazio vira NULL; o SOS-04 aplica a mensagem padrão da Regra 02.
-        mensagem=dados.mensagem or None,
+        # Sem mensagem no corpo, vale a salva em Ajustes; sem as duas, NULL e o SOS-04 usa a padrão
+        # da Regra 02. O alerta guarda a cópia: mudar Ajustes depois não altera alertas antigos.
+        mensagem=dados.mensagem or usuario.mensagem_sos or None,
     )
     sessao.add(alerta)
     sessao.flush()

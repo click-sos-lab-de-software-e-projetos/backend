@@ -61,7 +61,7 @@ def cadastro_valido_deve_responder_201_sem_senha_nem_hash(client):
 
     assert resposta.status_code == 201
     corpo = resposta.json()
-    assert set(corpo) == {"id", "nome_completo", "email", "telefone_pessoal", "criado_em"}
+    assert set(corpo) == {"id", "nome_completo", "email", "telefone_pessoal", "criado_em", "mensagem_sos"}
     assert corpo["email"] == CORPO["email"]
 
 
@@ -159,7 +159,8 @@ def me_com_token_do_login_deve_devolver_o_perfil_sem_senha(client):
 
     assert resposta.status_code == 200
     assert resposta.json()["id"] == usuario_id
-    assert set(resposta.json()) == {"id", "nome_completo", "email", "telefone_pessoal", "criado_em"}
+    assert set(resposta.json()) == {"id", "nome_completo", "email", "telefone_pessoal", "criado_em", "mensagem_sos"}
+    assert resposta.json()["mensagem_sos"] is None
 
 
 def me_de_usuario_removido_deve_responder_401(client, banco_migrado):
@@ -198,6 +199,19 @@ def editar_perfil_deve_mudar_so_os_campos_enviados(client):
     client.patch("/api/v1/auth/me", json={"nome_completo": " Nome Novo "}, headers=cabecalhos)
     perfil = client.get("/api/v1/auth/me", headers=cabecalhos).json()
     assert (perfil["nome_completo"], perfil["telefone_pessoal"]) == ("Nome Novo", "+5500911111111")
+
+
+def mensagem_sos_deve_ser_salva_e_vazia_deve_voltar_para_a_padrao(client):
+    cabecalhos = _cadastrar_e_entrar(client)
+
+    resposta = client.patch("/api/v1/auth/me", json={"mensagem_sos": " Me liga agora "}, headers=cabecalhos)
+
+    assert resposta.status_code == 200
+    assert resposta.json()["mensagem_sos"] == "Me liga agora"
+    assert client.get("/api/v1/auth/me", headers=cabecalhos).json()["mensagem_sos"] == "Me liga agora"
+
+    client.patch("/api/v1/auth/me", json={"mensagem_sos": ""}, headers=cabecalhos)
+    assert client.get("/api/v1/auth/me", headers=cabecalhos).json()["mensagem_sos"] is None
 
 
 def trocar_senha_com_a_senha_atual_deve_valer_no_proximo_login(client):

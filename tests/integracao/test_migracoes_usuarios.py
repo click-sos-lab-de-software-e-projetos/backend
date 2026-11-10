@@ -1,6 +1,7 @@
 import pytest
 from sqlalchemy.exc import IntegrityError
 
+from app.constants import LIMITE_MENSAGEM_SOS
 from integracao.fabricas import inserir_usuario
 from integracao.inspecao import colunas
 
@@ -13,6 +14,7 @@ def tabela_usuarios_deve_ter_colunas_tipos_e_nulidade_esperados(banco_migrado):
         "senha_hash": ("character varying", 255, False),
         "telefone_pessoal": ("character varying", 20, False),
         "criado_em": ("timestamp with time zone", None, False),
+        "mensagem_sos": ("character varying", LIMITE_MENSAGEM_SOS, True),
     }
 
 

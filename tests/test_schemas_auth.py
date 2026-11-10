@@ -3,6 +3,7 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
+from app.constants import LIMITE_MENSAGEM_SOS
 from app.schemas.auth import (
     AtualizarPerfilRequisicao,
     CadastroRequisicao,
@@ -80,6 +81,7 @@ def resposta_usuario_nao_deve_expor_senha_nem_hash():
         "email",
         "telefone_pessoal",
         "criado_em",
+        "mensagem_sos",
     }
 
 
@@ -89,6 +91,7 @@ def resposta_usuario_nao_deve_expor_senha_nem_hash():
         {"nome_completo": "Outro Nome"},
         {"telefone_pessoal": "+5500911111111"},
         {"nome_completo": "Outro Nome", "telefone_pessoal": "+5500911111111"},
+        {"mensagem_sos": "Me liga agora"},
     ],
 )
 def atualizar_perfil_deve_aceitar_campos_parciais(corpo):
@@ -97,6 +100,12 @@ def atualizar_perfil_deve_aceitar_campos_parciais(corpo):
 
 def atualizar_perfil_deve_tirar_espacos_do_nome():
     assert AtualizarPerfilRequisicao.model_validate({"nome_completo": "  Nome  "}).nome_completo == "Nome"
+
+
+@pytest.mark.parametrize(("enviada", "gravada"), [("  Me liga  ", "Me liga"), ("", None), ("   ", None)])
+def mensagem_sos_deve_ser_aparada_e_vazia_deve_voltar_para_a_padrao(enviada, gravada):
+    dados = AtualizarPerfilRequisicao.model_validate({"mensagem_sos": enviada})
+    assert dados.model_dump(exclude_unset=True) == {"mensagem_sos": gravada}
 
 
 @pytest.mark.parametrize(
@@ -109,8 +118,20 @@ def atualizar_perfil_deve_tirar_espacos_do_nome():
         {"telefone_pessoal": "11999999999"},
         {"email": "outra@example.com"},
         {"nome_completo": "Nome", "senha": "senha-ficticia"},
+        {"mensagem_sos": None},
+        {"mensagem_sos": "x" * (LIMITE_MENSAGEM_SOS + 1)},
     ],
-    ids=["vazio", "nome-nulo", "telefone-nulo", "nome-branco", "telefone-sem-e164", "email", "senha"],
+    ids=[
+        "vazio",
+        "nome-nulo",
+        "telefone-nulo",
+        "nome-branco",
+        "telefone-sem-e164",
+        "email",
+        "senha",
+        "mensagem-nula",
+        "mensagem-longa",
+    ],
 )
 def atualizar_perfil_invalido_deve_ser_rejeitado(corpo):
     with pytest.raises(ValidationError):

@@ -135,6 +135,30 @@ def criar_alerta_sem_mensagem_deve_gravar_null_para_o_sos_04_usar_a_padrao(
     assert _alertas(banco_migrado)[0].mensagem is None
 
 
+def _salvar_mensagem_sos(banco_migrado, usuario_id, mensagem: str) -> None:
+    with banco_migrado.begin() as conexao:
+        conexao.execute(
+            text("UPDATE usuarios SET mensagem_sos = :mensagem WHERE id = :id"),
+            {"mensagem": mensagem, "id": usuario_id},
+        )
+
+
+@pytest.mark.parametrize("corpo", [CORPO, {**CORPO, "mensagem": "   "}])
+def criar_alerta_sem_mensagem_deve_gravar_a_mensagem_salva_da_pessoa(client, banco_migrado, ana, corpo):
+    _salvar_mensagem_sos(banco_migrado, ana, "Me liga agora")
+
+    assert client.post(ROTA, json=corpo, headers=_token(ana)).status_code == 201
+    assert _alertas(banco_migrado)[0].mensagem == "Me liga agora"
+
+
+def criar_alerta_com_mensagem_no_corpo_deve_ignorar_a_mensagem_salva(client, banco_migrado, ana):
+    _salvar_mensagem_sos(banco_migrado, ana, "Me liga agora")
+
+    client.post(ROTA, json={**CORPO, "mensagem": "Estou no ponto"}, headers=_token(ana))
+
+    assert _alertas(banco_migrado)[0].mensagem == "Estou no ponto"
+
+
 def criar_alerta_com_mensagem_no_limite_deve_gravar_inteira(client, banco_migrado, ana):
     corpo = {**CORPO, "mensagem": "a" * LIMITE_MENSAGEM_SOS}
     assert client.post(ROTA, json=corpo, headers=_token(ana)).status_code == 201

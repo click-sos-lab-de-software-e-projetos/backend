@@ -34,7 +34,7 @@ Com a aplicação iniciada, consulte `http://localhost:8000/health`. A documenta
 
 ## Testar as rotas privadas no Swagger
 
-As rotas de `/api/v1/contatos` e `/api/v1/sos/alertas` exigem um banco migrado e um JWT, obtido pelo cadastro e login de `/api/v1/auth` (AUTH-01). O token vale 24 horas (ajuste com `JWT_EXPIRACAO_MIN`) e não é renovado: ao expirar, faça login de novo. `GET /api/v1/auth/me` devolve o perfil da pessoa dona do token. `PATCH /api/v1/auth/me` altera `nome_completo` e/ou `telefone_pessoal` (só os campos enviados; o e-mail não é editável). `POST /api/v1/auth/me/senha` com `{"senha_atual", "senha_nova"}` troca a senha e responde `204`; senha atual errada responde `400`. Tokens emitidos antes da troca continuam válidos até expirar. `DELETE /api/v1/auth/me` com `{"senha"}` exclui a conta (veja "Retenção e privacidade").
+As rotas de `/api/v1/contatos` e `/api/v1/sos/alertas` exigem um banco migrado e um JWT, obtido pelo cadastro e login de `/api/v1/auth` (AUTH-01). O token vale 24 horas (ajuste com `JWT_EXPIRACAO_MIN`) e não é renovado: ao expirar, faça login de novo. `GET /api/v1/auth/me` devolve o perfil da pessoa dona do token. `PATCH /api/v1/auth/me` altera `nome_completo`, `telefone_pessoal` e/ou `mensagem_sos` (só os campos enviados; o e-mail não é editável). `mensagem_sos` (até 255 caracteres) é a mensagem de S.O.S. configurada em Ajustes no app: um `POST /api/v1/sos/alertas` sem `mensagem` usa a salva e, sem ela, a padrão da Regra 02; `""` volta para a padrão. `POST /api/v1/auth/me/senha` com `{"senha_atual", "senha_nova"}` troca a senha e responde `204`; senha atual errada responde `400`. Tokens emitidos antes da troca continuam válidos até expirar. `DELETE /api/v1/auth/me` com `{"senha"}` exclui a conta (veja "Retenção e privacidade").
 
 ### Consentimento do contato
 
@@ -208,7 +208,7 @@ alembic upgrade head --sql  # mostra o SQL sem executar
 alembic check               # confirma que os modelos em src/app/db/models.py batem com as migrações
 ```
 
-As revisões `0006` e `0007` (schema `interno` e `regioes_seguranca`) foram aplicadas no Neon antes de estarem no Git e depois reescritas a partir do schema real. No Neon, `alembic upgrade head` parte da `0007` e aplica a `0008`, a `0009` (`feedbacks_comunidade`) e a `0010` (alertas anonimizados); não rode `downgrade` lá.
+As revisões `0006` e `0007` (schema `interno` e `regioes_seguranca`) foram aplicadas no Neon antes de estarem no Git e depois reescritas a partir do schema real. No Neon, `alembic upgrade head` parte da `0007` e aplica a `0008`, a `0009` (`feedbacks_comunidade`), a `0010` (alertas anonimizados) e a `0011` (`usuarios.mensagem_sos`); não rode `downgrade` lá.
 
 ## Variáveis de ambiente
 

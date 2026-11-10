@@ -18,6 +18,7 @@ from app.constants import (
     PADRAO_TELEFONE_E164,
     TAMANHO_MINIMO_SENHA,
 )
+from app.schemas.sos import MensagemLivre
 
 
 def _caber_no_bcrypt(senha: str) -> str:
@@ -35,6 +36,8 @@ SenhaNova = Annotated[
     str, StringConstraints(min_length=TAMANHO_MINIMO_SENHA), AfterValidator(_caber_no_bcrypt)
 ]
 TelefoneE164 = Annotated[str, StringConstraints(pattern=PADRAO_TELEFONE_E164)]
+# Vazia vira NULL: o S.O.S. volta a usar a mensagem padrão da Regra 02.
+MensagemSos = Annotated[MensagemLivre, AfterValidator(lambda mensagem: mensagem or None)]
 
 EXEMPLO_CADASTRO = {
     "nome_completo": "Pessoa Ficticia",
@@ -72,12 +75,14 @@ class AtualizarPerfilRequisicao(BaseModel):
 
     model_config = ConfigDict(
         extra="forbid",
-        json_schema_extra={"examples": [{"telefone_pessoal": "+5500911111111"}]},
+        json_schema_extra={"examples": [{"telefone_pessoal": "+5500911111111"}, {"mensagem_sos": "Me liga agora"}]},
     )
 
     # Sem `| None`: o padrão nunca é validado, e `null` enviado explicitamente vira 422.
     nome_completo: NomeCompleto = None
     telefone_pessoal: TelefoneE164 = None
+    # `""` limpa a mensagem salva; `null` continua 422, como nos outros campos.
+    mensagem_sos: MensagemSos = None
 
     @model_validator(mode="after")
     def _ao_menos_um_campo(self) -> Self:
@@ -116,6 +121,7 @@ class UsuarioResposta(BaseModel):
     email: str
     telefone_pessoal: str
     criado_em: datetime
+    mensagem_sos: str | None
 
 
 class TokenResposta(BaseModel):

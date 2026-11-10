@@ -35,6 +35,8 @@ class Usuario(Base):
     criado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    # NULL usa a mensagem padrão da Regra 02 no S.O.S.
+    mensagem_sos: Mapped[str | None] = mapped_column(String(LIMITE_MENSAGEM_SOS))
 
 
 class ContatoEmergencia(Base):
