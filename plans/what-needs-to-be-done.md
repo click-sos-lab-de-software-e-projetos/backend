@@ -181,7 +181,9 @@ Dados úteis das ocorrências:
 - [x] MAP-01 e MAP-02: trazer para o repositório as migrações `0006` e `0007` exatamente como estão no Neon. Elas criam o schema `interno`, as 3 tabelas internas e `regioes_seguranca`.
   - Decidido: reescrever as migrações a partir do schema atual (colunas, `CHECK`, FKs e índices GiST listados acima).
   - Testar as migrações no PostGIS descartável. No Neon, só rodar `alembic stamp 0007`, sem recriar nada.
-- [ ] MAP-03: trazer também o script de carga (SSP e GeoSampa), idempotente pelo `arquivo_sha256` e pela `chave_fonte`, com testes.
+- [x] MAP-03: trazer também o script de carga (SSP e GeoSampa), idempotente pelo `arquivo_sha256` e pela `chave_fonte`, com testes.
+  - Feito em `scripts/carregar_mapa.py` (plano: `plans/MAP-03-carga-ssp-geosampa.md`). A `chave_fonte` antiga não pôde ser reproduzida, então a recarga no Neon precisa de `--substituir`.
+  - Atenção: o `SPDadosCriminais_2026.xlsx` de hoje (sha `c1f9…`) não é o carregado no Neon (sha `a2f0…`). Ele tem 223.191 ocorrências válidas até 31/07/2026, contra cerca de 255 mil até 31/08/2026 no Neon. Com `--substituir`, o mapa perde dados; só recarregue com um arquivo que cubra o período todo.
 - [x] MAP-05: função pura que recalcula o score:
   - usar só ocorrências dos últimos 6 meses (`data_ocorrencia`);
   - densidade = soma dos pesos ÷ área do distrito em km²;

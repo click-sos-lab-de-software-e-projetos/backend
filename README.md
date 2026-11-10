@@ -140,13 +140,18 @@ O worker registra cada envio no logger `app.workers.despacho_sos`, sempre pelo U
 
 ## Mapa de risco
 
-Os distritos (`regioes_seguranca`) e as ocorrências da SSP (`interno.ocorrencias_ssp`) já estão no Neon; o script de carga ainda não está no Git (MAP-03). Depois de cada carga, recalcule o score (MAP-05):
+Os distritos (`regioes_seguranca`) vêm do geojson de distritos do GeoSampa, e as ocorrências (`interno.ocorrencias_ssp`), do xlsx de dados criminais da SSP-SP (MAP-03). Os arquivos não ficam no Git. A carga recalcula o score (MAP-05) no fim; sem `--gravar`, só mostra o resumo:
 
 ```bash
-./scripts/fetch-env.sh                       # DATABASE_URL do Neon
-python scripts/recalcular_mapa.py            # só mostra o resumo; nada é gravado
-python scripts/recalcular_mapa.py --gravar   # regrava os distritos
+./scripts/fetch-env.sh                                                  # DATABASE_URL do Neon
+python scripts/carregar_mapa.py distritos distritos-sp.geojson          # distritos primeiro
+python scripts/carregar_mapa.py distritos distritos-sp.geojson --gravar
+python scripts/carregar_mapa.py ssp SPDadosCriminais_2026.xlsx --substituir
+python scripts/carregar_mapa.py ssp SPDadosCriminais_2026.xlsx --substituir --gravar
+python scripts/recalcular_mapa.py --gravar                              # só o recálculo, sem carga
 ```
+
+A carga é idempotente: um arquivo com o mesmo sha256 de uma carga concluída não é processado de novo, e uma ocorrência cuja `chave_fonte` já existe é atualizada. A `chave_fonte` é o sha256 de `delegacia|NUM_BO|ANO_BO|rubrica|conduta|natureza`. Entram só as linhas da capital (COD IBGE 3550308); coordenada ausente, `(0, 0)` ou fora do intervalo é rejeitada e contada em `erros_amostra`. O peso é o maior entre o da natureza apurada e o da rubrica: 3 para homicídio, latrocínio, estupro, feminicídio e extorsão mediante sequestro; 2 para roubo, lesão corporal e arma; 1 para o resto. `--substituir` apaga, na mesma transação, as ocorrências de cargas anteriores; use quando o arquivo novo cobrir o período delas, pois a `chave_fonte` da carga de 27/10/2026 usava outra fórmula e as ocorrências duplicariam. No geojson, o código e o nome do distrito vêm de `cd_distrito_municipal` e `nm_distrito_municipal` (troque com `--campo-codigo` e `--campo-nome`); um arquivo novo atualiza nome e limites sem mexer no score.
 
 O score vai de 0 a 100: soma dos pesos das ocorrências dos 6 meses anteriores à ocorrência mais recente, dividida pela área do distrito, relativa ao distrito mais denso. Faixas: verde abaixo de 34, amarelo de 34 a 66 e vermelho a partir de 67. Antes de `--gravar`, confira no resumo se a janela de datas faz sentido: uma ocorrência com data futura por erro esvaziaria o mapa.
 
