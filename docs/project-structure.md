@@ -65,7 +65,7 @@ Conterá os modelos Pydantic que definem os dados recebidos e enviados pela API.
 
 ### `services/`
 
-Regras de negócio. `auth.py` implementa o AUTH-01: cadastro com senha bcrypt, login que não revela se o e-mail existe e leitura do perfil (`/me`). `contatos.py` implementa o CONT-01: isolamento por `usuario_id` e limite de contatos ativos, com trava `FOR UPDATE` em `usuarios`. `alertas.py` implementa o SOS-03: exige ao menos um contato ativo com consentimento e grava o alerta como `PENDENTE`, sem chamar serviços externos. Próximo serviço: cálculo de risco de uma região. Rotas HTTP devem delegar a lógica para esta camada em vez de concentrá-la em `api/`.
+Regras de negócio. `auth.py` implementa o AUTH-01: cadastro com senha bcrypt, login que não revela se o e-mail existe e leitura do perfil (`/me`). `contatos.py` implementa o CONT-01: isolamento por `usuario_id` e limite de contatos ativos, com trava `FOR UPDATE` em `usuarios`. `alertas.py` implementa o SOS-03: exige ao menos um contato ativo com consentimento e grava o alerta como `PENDENTE`, sem chamar serviços externos. `whatsapp.py` implementa o SOS-05: envia texto pela Evolution API v2 e classifica cada falha como temporária (timeout, conexão, 429, 5xx) ou definitiva (demais 4xx), sem escrever telefone ou texto em log; a versão falsa para testes fica em `tests/whatsapp_falso.py`. Próximo serviço: cálculo de risco de uma região. Rotas HTTP devem delegar a lógica para esta camada em vez de concentrá-la em `api/`.
 
 ### `workers/`
 

@@ -24,3 +24,9 @@ PADRAO_TELEFONE_E164 = r"^\+[1-9][0-9]{7,14}$"
 # Endereço da página pública de consentimento (repositório tela-consentimento).
 NOME_VARIAVEL_URL_CONSENTIMENTO = "CONSENTIMENTO_URL_BASE"
 VALIDADE_LINK_CONSENTIMENTO_DIAS = 7
+NOME_VARIAVEL_EVOLUTION_URL = "EVOLUTION_API_URL"
+NOME_VARIAVEL_EVOLUTION_CHAVE = "EVOLUTION_API_KEY"
+NOME_VARIAVEL_EVOLUTION_INSTANCIA = "EVOLUTION_INSTANCE"
+# Timeout conta como falha temporária, mas a mensagem pode ter chegado; um
+# valor curto aumenta o risco de o contato receber o alerta duplicado.
+TIMEOUT_ENVIO_WHATSAPP_S = 10
