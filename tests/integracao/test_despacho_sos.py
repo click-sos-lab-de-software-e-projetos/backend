@@ -6,6 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from whatsapp_falso import EnviadorWhatsAppFalso
 
 from app.services.mensagem_sos import montar_mensagem_emergencia
+from app.services.whatsapp import Desfecho, ResultadoEnvio
 from app.workers.despacho_sos import despachar_alerta, obter_despacho, obter_enviador_whatsapp
 from integracao.fabricas import inserir_alerta, inserir_contato, inserir_usuario
 
@@ -109,3 +110,100 @@ def despacho_sem_variaveis_da_evolution_deve_marcar_o_alerta_como_erro(
     obter_despacho(fabrica)(alerta_id)
 
     assert tuple(_alerta(banco_migrado, alerta_id)) == ("ERRO", 0)
+
+
+# --- SOS-07: retentativas (Regra 04) ----------------------------------------
+
+TEMPORARIA = ResultadoEnvio(Desfecho.FALHA_TEMPORARIA, "HTTP_503")
+DEFINITIVA = ResultadoEnvio(Desfecho.FALHA_DEFINITIVA, "HTTP_400")
+
+
+class RelogioFalso:
+    """Registra as esperas pedidas e o status do alerta no momento de cada uma."""
+
+    def __init__(self, banco_migrado, alerta_id):
+        self._banco, self._alerta_id = banco_migrado, alerta_id
+        self.esperas: list[float] = []
+        self.status_durante: list[str] = []
+
+    def __call__(self, segundos: float) -> None:
+        self.esperas.append(segundos)
+        self.status_durante.append(_alerta(self._banco, self._alerta_id).status_envio)
+
+
+def _despachar(banco_migrado, fabrica, alerta_id, falso) -> RelogioFalso:
+    relogio = RelogioFalso(banco_migrado, alerta_id)
+    despachar_alerta(alerta_id, fabrica_sessao=fabrica, enviador=falso, esperar=relogio)
+    return relogio
+
+
+def falha_temporaria_deve_ser_tentada_de_novo_apos_5_segundos(banco_migrado, fabrica):
+    _, alerta_id, _ = _preparar(banco_migrado, APTO)
+
+    relogio = _despachar(banco_migrado, fabrica, alerta_id, EnviadorWhatsAppFalso([TEMPORARIA]))
+
+    assert relogio.esperas == [5]
+    assert tuple(_alerta(banco_migrado, alerta_id)) == ("ENVIADO", 2)
+    linhas = [(t.numero_tentativa, t.status, t.erro_codigo) for t in _tentativas(banco_migrado, alerta_id)]
+    assert linhas == [(1, "FALHOU", "HTTP_503"), (2, "SUCESSO", None)]
+
+
+def alerta_deve_continuar_pendente_entre_rodadas(banco_migrado, fabrica):
+    _, alerta_id, _ = _preparar(banco_migrado, APTO)
+
+    relogio = _despachar(
+        banco_migrado, fabrica, alerta_id, EnviadorWhatsAppFalso([TEMPORARIA, TEMPORARIA])
+    )
+
+    assert relogio.status_durante == ["PENDENTE", "PENDENTE"]
+
+
+def alerta_com_cinco_falhas_temporarias_deve_virar_erro_apos_esperas_5_10_15_20(banco_migrado, fabrica):
+    _, alerta_id, _ = _preparar(banco_migrado, APTO)
+
+    relogio = _despachar(banco_migrado, fabrica, alerta_id, EnviadorWhatsAppFalso([TEMPORARIA] * 6))
+
+    assert relogio.esperas == [5, 10, 15, 20]
+    assert tuple(_alerta(banco_migrado, alerta_id)) == ("ERRO", 5)
+    tentativas = _tentativas(banco_migrado, alerta_id)
+    assert [(t.numero_tentativa, t.status) for t in tentativas] == [(n, "FALHOU") for n in range(1, 6)]
+
+
+def falha_definitiva_nao_deve_ser_tentada_de_novo(banco_migrado, fabrica):
+    _, alerta_id, _ = _preparar(banco_migrado, APTO)
+    falso = EnviadorWhatsAppFalso([DEFINITIVA])
+
+    relogio = _despachar(banco_migrado, fabrica, alerta_id, falso)
+
+    assert len(falso.envios) == 1
+    assert relogio.esperas == []
+    assert tuple(_alerta(banco_migrado, alerta_id)) == ("ERRO", 1)
+
+
+def alerta_deve_virar_enviado_na_primeira_rodada_com_sucesso_e_seguir_tentando_os_demais(
+    banco_migrado, fabrica
+):
+    _, alerta_id, (contato_a, contato_b) = _preparar(banco_migrado, APTO, APTO)
+    falso = EnviadorWhatsAppFalso(
+        por_telefone={_telefone(banco_migrado, contato_b): [TEMPORARIA, TEMPORARIA]}
+    )
+
+    relogio = _despachar(banco_migrado, fabrica, alerta_id, falso)
+
+    assert relogio.status_durante == ["ENVIADO", "ENVIADO"]
+    assert tuple(_alerta(banco_migrado, alerta_id)) == ("ENVIADO", 3)
+    por_contato = {}
+    for t in _tentativas(banco_migrado, alerta_id):
+        por_contato.setdefault(t.contato_id, []).append(t.status)
+    assert por_contato == {contato_a: ["SUCESSO"], contato_b: ["FALHOU", "FALHOU", "SUCESSO"]}
+
+
+def alerta_enviado_nao_deve_voltar_para_erro_se_os_demais_esgotarem(banco_migrado, fabrica):
+    _, alerta_id, (_, contato_b) = _preparar(banco_migrado, APTO, APTO)
+    falso = EnviadorWhatsAppFalso(
+        por_telefone={_telefone(banco_migrado, contato_b): [TEMPORARIA] * 5}
+    )
+
+    _despachar(banco_migrado, fabrica, alerta_id, falso)
+
+    assert tuple(_alerta(banco_migrado, alerta_id)) == ("ENVIADO", 5)

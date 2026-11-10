@@ -106,7 +106,7 @@ O cliente do SOS-05 deve chamar `POST {EVOLUTION_API_URL}/message/sendText/{EVOL
   - a mensagem do commit explica como testar em 5 minutos.
 - [x] Documentar no README o passo a passo acima, de forma resumida.
 - [x] SOS-06: worker que, depois do commit da transação, envia para cada contato ativo com consentimento e grava uma linha em `tentativas_envio_sos`.
-- [ ] SOS-07: até 5 tentativas, com esperas de 5, 10, 15, 20 e 25 s. Depois da 5ª falha, o alerta vira `ERRO`; com sucesso, vira `ENVIADO`.
+- [x] SOS-07: até 5 tentativas, com esperas de 5, 10, 15, 20 e 25 s. Depois da 5ª falha, o alerta vira `ERRO`; com sucesso, vira `ENVIADO`.
 - [ ] SOS-08:
   - logs estruturados identificados pelo UUID do alerta;
   - teste ponta a ponta com a Evolution API falsa.

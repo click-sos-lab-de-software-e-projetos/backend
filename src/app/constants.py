@@ -30,3 +30,7 @@ NOME_VARIAVEL_EVOLUTION_INSTANCIA = "EVOLUTION_INSTANCE"
 # Timeout conta como falha temporária, mas a mensagem pode ter chegado; um
 # valor curto aumenta o risco de o contato receber o alerta duplicado.
 TIMEOUT_ENVIO_WHATSAPP_S = 10
+# Regra 04: no máximo 5 tentativas. A 1ª é imediata, então só cabem 4 esperas
+# (5, 10, 15 e 20 s); o 25 da regra nunca é usado.
+MAXIMO_TENTATIVAS_ENVIO = 5
+ESPERAS_RETENTATIVA_S = (5, 10, 15, 20)

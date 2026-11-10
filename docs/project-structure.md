@@ -69,7 +69,7 @@ Regras de negócio. `auth.py` implementa o AUTH-01: cadastro com senha bcrypt, l
 
 ### `workers/`
 
-Tarefas executadas fora da resposta HTTP. `despacho_sos.py` (SOS-06) envia o alerta S.O.S pelo WhatsApp: a rota agenda o envio com `BackgroundTasks`, responde com o alerta `PENDENTE` e só então o worker, com sessão própria, manda a mensagem a cada contato apto e grava as tentativas. Assim o aplicativo recebe a resposta rápido mesmo quando a Evolution API está lenta. Sem as variáveis da Evolution, o alerta vira `ERRO`.
+Tarefas executadas fora da resposta HTTP. `despacho_sos.py` (SOS-06) envia o alerta S.O.S pelo WhatsApp: a rota agenda o envio com `BackgroundTasks`, responde com o alerta `PENDENTE` e só então o worker, com sessão própria, manda a mensagem a cada contato apto e grava as tentativas. Falhas temporárias são repetidas em até 5 rodadas, com esperas de 5, 10, 15 e 20 s (SOS-07, Regra 04); o alerta vira `ENVIADO` no primeiro contato atendido e `ERRO` só se ninguém receber. Assim o aplicativo recebe a resposta rápido mesmo quando a Evolution API está lenta. Sem as variáveis da Evolution, o alerta vira `ERRO`.
 
 ### `main.py`
 
