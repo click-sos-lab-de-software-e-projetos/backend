@@ -182,7 +182,7 @@ Dados úteis das ocorrências:
   - Decidido: reescrever as migrações a partir do schema atual (colunas, `CHECK`, FKs e índices GiST listados acima).
   - Testar as migrações no PostGIS descartável. No Neon, só rodar `alembic stamp 0007`, sem recriar nada.
 - [ ] MAP-03: trazer também o script de carga (SSP e GeoSampa), idempotente pelo `arquivo_sha256` e pela `chave_fonte`, com testes.
-- [ ] MAP-05: função pura que recalcula o score:
+- [x] MAP-05: função pura que recalcula o score:
   - usar só ocorrências dos últimos 6 meses (`data_ocorrencia`);
   - densidade = soma dos pesos ÷ área do distrito em km²;
   - score = densidade ÷ maior densidade × 100;

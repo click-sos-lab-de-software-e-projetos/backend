@@ -138,6 +138,18 @@ Com um número pessoal, evite rajadas de mensagens: o WhatsApp pode banir númer
 
 O worker registra cada envio no logger `app.workers.despacho_sos`, sempre pelo UUID do alerta (`alerta_id=...`): início, uma linha por rodada e o `status_envio` final. Telefone, nome, texto e coordenadas nunca aparecem no log. Limitação conhecida: se o servidor reiniciar durante o envio, o alerta fica `PENDENTE` e não é retomado.
 
+## Mapa de risco
+
+Os distritos (`regioes_seguranca`) e as ocorrências da SSP (`interno.ocorrencias_ssp`) já estão no Neon; o script de carga ainda não está no Git (MAP-03). Depois de cada carga, recalcule o score (MAP-05):
+
+```bash
+./scripts/fetch-env.sh                       # DATABASE_URL do Neon
+python scripts/recalcular_mapa.py            # só mostra o resumo; nada é gravado
+python scripts/recalcular_mapa.py --gravar   # regrava os distritos
+```
+
+O score vai de 0 a 100: soma dos pesos das ocorrências dos 6 meses anteriores à ocorrência mais recente, dividida pela área do distrito, relativa ao distrito mais denso. Faixas: verde abaixo de 34, amarelo de 34 a 66 e vermelho a partir de 67. Antes de `--gravar`, confira no resumo se a janela de datas faz sentido: uma ocorrência com data futura por erro esvaziaria o mapa.
+
 ## Testes e pre-commit
 
 ```bash

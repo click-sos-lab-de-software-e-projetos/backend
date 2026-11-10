@@ -34,3 +34,12 @@ TIMEOUT_ENVIO_WHATSAPP_S = 10
 # (5, 10, 15 e 20 s); o 25 da regra nunca é usado.
 MAXIMO_TENTATIVAS_ENVIO = 5
 ESPERAS_RETENTATIVA_S = (5, 10, 15, 20)
+# Mapa de risco (MAP-05): score de 0 a 100 em 3 faixas.
+COR_VERDE = "#22C55E"
+COR_AMARELA = "#EAB308"
+COR_VERMELHA = "#EF4444"
+SCORE_MINIMO_AMARELO = 34
+SCORE_MINIMO_VERMELHO = 67
+# Janela contada a partir da ocorrência mais recente no banco, não de hoje:
+# a carga da SSP é esporádica e o mapa não pode esvaziar entre cargas.
+JANELA_SCORE_MESES = 6
