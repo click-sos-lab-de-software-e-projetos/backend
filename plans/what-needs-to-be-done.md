@@ -133,7 +133,7 @@ O cliente do SOS-05 deve chamar `POST {EVOLUTION_API_URL}/message/sendText/{EVOL
 ## Tarefa 4 — Fluxo S.O.S no app (SOSM-03 · SOSM-04 · Regra 02)
 
 **Backend**
-- [ ] Nada novo. Só confirmar que a mensagem padrão da Regra 02 é usada quando `mensagem` vem vazia.
+- [x] Nada novo. Só confirmar que a mensagem padrão da Regra 02 é usada quando `mensagem` vem vazia.
 
 **Frontend**
 - [ ] Antes de pedir a localização no fluxo S.O.S:

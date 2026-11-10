@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from whatsapp_falso import EnviadorWhatsAppFalso
 
 from app.api.deps import obter_segredo_jwt
-from app.constants import LIMITE_MENSAGEM_SOS
+from app.constants import LIMITE_MENSAGEM_SOS, MENSAGEM_PADRAO_SOS
 from app.db.sessao import criar_engine, obter_fabrica_sessao, obter_sessao
 from app.main import app
 from app.services.whatsapp import Desfecho, ResultadoEnvio
@@ -255,6 +255,24 @@ def fluxo_sos_deve_enviar_a_ate_3_contatos_e_gravar_estados_finais(
     assert _contar(banco_migrado, "tentativas_envio_sos") == 4
     for dado in (*telefones, nome, "Texto Sigiloso", "12.345678", "65.432198"):
         assert dado not in caplog.text, dado
+
+
+@pytest.mark.parametrize("mensagem", ["", "   "])
+def fluxo_sos_com_mensagem_vazia_deve_enviar_a_mensagem_padrao_da_regra_02(
+    client, ana, engine_app, mensagem
+):
+    falso = EnviadorWhatsAppFalso()
+    app.dependency_overrides[obter_despacho] = lambda: partial(
+        despachar_alerta,
+        fabrica_sessao=sessionmaker(engine_app, expire_on_commit=False),
+        enviador=falso,
+    )
+
+    resposta = client.post(ROTA, json={**CORPO, "mensagem": mensagem}, headers=_token(ana))
+
+    assert resposta.status_code == 201
+    ((_, texto),) = falso.envios
+    assert texto.endswith(MENSAGEM_PADRAO_SOS)
 
 
 # --- consulta do status (Tarefa 3) -----------------------------------------
