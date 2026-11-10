@@ -226,8 +226,8 @@ Dados úteis das ocorrências:
 - [x] Opcional: troca de senha, exigindo a senha atual.
 
 **Frontend**
-- [ ] Hoje `EditProfileScreen` só altera o estado local. Passar a chamar a API.
-- [ ] Desabilitar a edição do e-mail ou criar um fluxo próprio para ele.
+- [x] Hoje `EditProfileScreen` só altera o estado local. Passar a chamar a API.
+- [x] Desabilitar a edição do e-mail ou criar um fluxo próprio para ele.
 
 ## Tarefa 8 — Edição e remoção de contatos
 
