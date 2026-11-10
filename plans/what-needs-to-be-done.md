@@ -265,9 +265,9 @@ Dados úteis das ocorrências:
 - [x] `DELETE /api/v1/auth/me`: apaga a pessoa e os contatos dela e anonimiza os alertas na hora.
 
 **Frontend**
-- [ ] Tela de privacidade explicando a retenção de 180 dias e a anonimização.
-- [ ] Consentimento LGPD antes do primeiro uso da localização.
-- [ ] Botão "Excluir conta" com confirmação dupla. Depois de excluir, apagar o token e voltar ao login.
+- [x] Tela de privacidade explicando a retenção de 180 dias e a anonimização.
+- [x] Consentimento LGPD antes do primeiro uso da localização.
+- [x] Botão "Excluir conta" com confirmação dupla. Depois de excluir, apagar o token e voltar ao login.
 
 ## Tarefa 11 — Qualidade, CI e documentação
 
