@@ -196,11 +196,11 @@ Dados úteis das ocorrências:
 - [x] MAP-08: teste de integração com PostGIS real.
 
 **Frontend**
-- [ ] Trocar `HttpOccurrenceRepository` (`/occurrences`, rota que não existe) por um repositório de `/mapa/regioes`.
-- [ ] Desenhar círculos com o centroide, o raio e a cor que vêm da API, no lugar do mapa de calor falso.
-- [ ] Tratar carregamento, lista vazia e falha.
-- [ ] O mapa precisa funcionar sem permissão de localização (MAPM-03).
-- [ ] MAPM-01: a chave do Maps já vem de configuração local. Conferir as restrições da chave no Google Cloud.
+- [x] Trocar `HttpOccurrenceRepository` (`/occurrences`, rota que não existe) por um repositório de `/mapa/regioes` (`HttpRegionRepository`, raio de 10 km).
+- [x] Desenhar círculos com o centroide, o raio e a cor que vêm da API, no lugar do mapa de calor falso. Tocar mostra nome, score e faixa; legenda no topo.
+- [x] Tratar carregamento, lista vazia e falha ("Tentar de novo"). Deslogado: mapa sem círculos e aviso para entrar.
+- [x] O mapa precisa funcionar sem permissão de localização (MAPM-03): nunca pede; sem permissão, centro na Praça da Sé.
+- [ ] MAPM-01: a chave do Maps já vem de configuração local. Conferir as restrições da chave no Google Cloud (passo manual, documentado no README do frontend).
 
 ## Tarefa 6 — Feedback comunitário (MAP-04 · MAPM-04 · Regra 05)
 
