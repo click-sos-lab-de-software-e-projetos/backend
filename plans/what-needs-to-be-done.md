@@ -215,9 +215,9 @@ Dados úteis das ocorrências:
 - [x] Testes provando que o feedback não altera o score nem aparece em `/mapa/regioes`.
 
 **Frontend**
-- [ ] Transformar a tela "Registro de ocorrência" em feedback vinculado a uma região selecionada no mapa.
-- [ ] Avisar que o feedback fica pendente e não muda o mapa.
-- [ ] Não alterar localmente o score nem a cor da região.
+- [x] Transformar a tela "Registro de ocorrência" em feedback vinculado a uma região selecionada no mapa (folha aberta pelo cartão do distrito; o código de ocorrência foi removido).
+- [x] Avisar que o feedback fica pendente e não muda o mapa.
+- [x] Não alterar localmente o score nem a cor da região.
 
 ## Tarefa 7 — Perfil editável
 
