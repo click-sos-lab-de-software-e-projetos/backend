@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, datetime
 
 import pytest
@@ -5,6 +6,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker
 from whatsapp_falso import EnviadorWhatsAppFalso
 
+from app.db.sessao import criar_engine
 from app.services.mensagem_sos import montar_mensagem_emergencia
 from app.services.whatsapp import Desfecho, ResultadoEnvio
 from app.workers.despacho_sos import despachar_alerta, obter_despacho, obter_enviador_whatsapp
@@ -15,20 +17,19 @@ LATITUDE, LONGITUDE = 0.25, 0.75
 
 
 @pytest.fixture
-def fabrica(banco_migrado):
-    return sessionmaker(banco_migrado, expire_on_commit=False)
+def fabrica(banco_migrado, url_teste):
+    # Mesmo engine da aplicação (hide_parameters), para o teste de log valer.
+    engine = criar_engine(url_teste)
+    yield sessionmaker(engine, expire_on_commit=False)
+    engine.dispose()
 
 
 def _preparar(banco_migrado, *contatos: dict, mensagem=None):
     """Cria uma pessoa, os contatos descritos e um alerta PENDENTE dela."""
     with banco_migrado.begin() as conexao:
         usuario = inserir_usuario(conexao, nome_completo="Ana Ficticia")
-        contatos_ids = [
-            inserir_contato(conexao, usuario.id, **contato).id for contato in contatos
-        ]
-        alerta = inserir_alerta(
-            conexao, usuario.id, latitude=LATITUDE, longitude=LONGITUDE, mensagem=mensagem
-        )
+        contatos_ids = [inserir_contato(conexao, usuario.id, **contato).id for contato in contatos]
+        alerta = inserir_alerta(conexao, usuario.id, latitude=LATITUDE, longitude=LONGITUDE, mensagem=mensagem)
     return usuario.id, alerta.id, contatos_ids
 
 
@@ -99,9 +100,7 @@ def despachar_alerta_sem_contato_apto_deve_marcar_erro_sem_enviar(banco_migrado,
     assert _tentativas(banco_migrado, alerta_id) == []
 
 
-def despacho_sem_variaveis_da_evolution_deve_marcar_o_alerta_como_erro(
-    banco_migrado, fabrica, monkeypatch
-):
+def despacho_sem_variaveis_da_evolution_deve_marcar_o_alerta_como_erro(banco_migrado, fabrica, monkeypatch):
     for nome in ("EVOLUTION_API_URL", "EVOLUTION_API_KEY", "EVOLUTION_INSTANCE"):
         monkeypatch.delenv(nome, raising=False)
     obter_enviador_whatsapp.cache_clear()
@@ -151,9 +150,7 @@ def falha_temporaria_deve_ser_tentada_de_novo_apos_5_segundos(banco_migrado, fab
 def alerta_deve_continuar_pendente_entre_rodadas(banco_migrado, fabrica):
     _, alerta_id, _ = _preparar(banco_migrado, APTO)
 
-    relogio = _despachar(
-        banco_migrado, fabrica, alerta_id, EnviadorWhatsAppFalso([TEMPORARIA, TEMPORARIA])
-    )
+    relogio = _despachar(banco_migrado, fabrica, alerta_id, EnviadorWhatsAppFalso([TEMPORARIA, TEMPORARIA]))
 
     assert relogio.status_durante == ["PENDENTE", "PENDENTE"]
 
@@ -180,13 +177,9 @@ def falha_definitiva_nao_deve_ser_tentada_de_novo(banco_migrado, fabrica):
     assert tuple(_alerta(banco_migrado, alerta_id)) == ("ERRO", 1)
 
 
-def alerta_deve_virar_enviado_na_primeira_rodada_com_sucesso_e_seguir_tentando_os_demais(
-    banco_migrado, fabrica
-):
+def alerta_deve_virar_enviado_na_primeira_rodada_com_sucesso_e_seguir_tentando_os_demais(banco_migrado, fabrica):
     _, alerta_id, (contato_a, contato_b) = _preparar(banco_migrado, APTO, APTO)
-    falso = EnviadorWhatsAppFalso(
-        por_telefone={_telefone(banco_migrado, contato_b): [TEMPORARIA, TEMPORARIA]}
-    )
+    falso = EnviadorWhatsAppFalso(por_telefone={_telefone(banco_migrado, contato_b): [TEMPORARIA, TEMPORARIA]})
 
     relogio = _despachar(banco_migrado, fabrica, alerta_id, falso)
 
@@ -200,10 +193,60 @@ def alerta_deve_virar_enviado_na_primeira_rodada_com_sucesso_e_seguir_tentando_o
 
 def alerta_enviado_nao_deve_voltar_para_erro_se_os_demais_esgotarem(banco_migrado, fabrica):
     _, alerta_id, (_, contato_b) = _preparar(banco_migrado, APTO, APTO)
-    falso = EnviadorWhatsAppFalso(
-        por_telefone={_telefone(banco_migrado, contato_b): [TEMPORARIA] * 5}
-    )
+    falso = EnviadorWhatsAppFalso(por_telefone={_telefone(banco_migrado, contato_b): [TEMPORARIA] * 5})
 
     _despachar(banco_migrado, fabrica, alerta_id, falso)
 
     assert tuple(_alerta(banco_migrado, alerta_id)) == ("ENVIADO", 5)
+
+
+# --- SOS-08: logs ------------------------------------------------------------
+
+LOGGER = "app.workers.despacho_sos"
+
+
+def _mensagens_do_worker(caplog) -> list[str]:
+    return [r.getMessage() for r in caplog.records if r.name == LOGGER]
+
+
+def despacho_deve_registrar_inicio_rodadas_e_fim_pelo_uuid_do_alerta(banco_migrado, fabrica, caplog):
+    caplog.set_level(logging.INFO, logger=LOGGER)
+    _, alerta_id, _ = _preparar(banco_migrado, APTO)
+
+    _despachar(banco_migrado, fabrica, alerta_id, EnviadorWhatsAppFalso([TEMPORARIA]))
+
+    mensagens = _mensagens_do_worker(caplog)
+    assert len(mensagens) == 4  # início, 2 rodadas e fim
+    assert all(f"alerta_id={alerta_id}" in m for m in mensagens)
+    assert "status_envio=ENVIADO" in mensagens[-1]
+
+
+def despacho_nao_deve_registrar_telefone_nome_texto_nem_coordenadas(banco_migrado, fabrica, caplog):
+    caplog.set_level(logging.DEBUG)
+    caplog.set_level(logging.INFO, logger="sqlalchemy.engine")
+    _, alerta_id, (contato,) = _preparar(banco_migrado, APTO, mensagem="Texto Sigiloso")
+    telefone = _telefone(banco_migrado, contato)
+
+    caplog.clear()  # só interessa o que o worker registra
+
+    _despachar(banco_migrado, fabrica, alerta_id, EnviadorWhatsAppFalso([TEMPORARIA]))
+
+    assert "INSERT INTO tentativas_envio_sos" in caplog.text, "o SQL precisa ser capturado"
+    for dado in (telefone, telefone.removeprefix("+"), "Ana Ficticia", "Texto Sigiloso", "0.250000", "0.750000"):
+        assert dado not in caplog.text, dado
+
+
+class EnviadorQueQuebra:
+    def enviar(self, telefone_e164: str, texto: str):
+        raise RuntimeError(telefone_e164)
+
+
+def erro_inesperado_no_despacho_deve_registrar_tipo_e_marcar_erro(banco_migrado, fabrica, caplog):
+    caplog.set_level(logging.INFO, logger=LOGGER)
+    _, alerta_id, (contato,) = _preparar(banco_migrado, APTO)
+
+    _despachar(banco_migrado, fabrica, alerta_id, EnviadorQueQuebra())
+
+    assert _alerta(banco_migrado, alerta_id).status_envio == "ERRO"
+    assert "RuntimeError" in caplog.text
+    assert _telefone(banco_migrado, contato) not in caplog.text

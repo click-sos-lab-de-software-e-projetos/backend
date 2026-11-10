@@ -1,6 +1,7 @@
 import logging
 import time
 from datetime import UTC, datetime
+from functools import partial
 from uuid import uuid4
 
 import jwt
@@ -8,12 +9,14 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session, sessionmaker
+from whatsapp_falso import EnviadorWhatsAppFalso
 
 from app.api.deps import obter_segredo_jwt
 from app.constants import LIMITE_MENSAGEM_SOS
 from app.db.sessao import criar_engine, obter_fabrica_sessao, obter_sessao
 from app.main import app
-from app.workers.despacho_sos import obter_despacho
+from app.services.whatsapp import Desfecho, ResultadoEnvio
+from app.workers.despacho_sos import despachar_alerta, obter_despacho
 from integracao.fabricas import inserir_contato, inserir_usuario
 
 SEGREDO_TESTE = "segredo-apenas-para-testes-com-32-bytes"
@@ -211,3 +214,44 @@ def criar_alerta_nao_deve_registrar_coordenadas_nem_mensagem_em_logs(client, ana
     assert "INSERT INTO alertas_sos" in caplog.text, "o SQL precisa ser capturado"
     for dado in ("12.345678", "65.432198", "Texto Sigiloso"):
         assert dado not in caplog.text
+
+
+# --- ponta a ponta (SOS-08) --------------------------------------------------
+
+
+def fluxo_sos_deve_enviar_a_ate_3_contatos_e_gravar_estados_finais(
+    client, banco_migrado, engine_app, caplog
+):
+    caplog.set_level(logging.DEBUG)
+    usuario = _usuario(banco_migrado, APTO, APTO, APTO)
+    with banco_migrado.connect() as conexao:
+        nome, *telefones = conexao.execute(
+            text(
+                "SELECT nome_completo FROM usuarios WHERE id = :id UNION ALL "
+                "SELECT telefone_whatsapp FROM contatos_emergencia WHERE usuario_id = :id"
+            ),
+            {"id": usuario},
+        ).scalars()
+    temporaria = ResultadoEnvio(Desfecho.FALHA_TEMPORARIA, "TIMEOUT")
+    falso = EnviadorWhatsAppFalso(por_telefone={telefones[2]: [temporaria]})
+    esperas = []
+    app.dependency_overrides[obter_despacho] = lambda: partial(
+        despachar_alerta,
+        fabrica_sessao=sessionmaker(engine_app, expire_on_commit=False),
+        enviador=falso,
+        esperar=esperas.append,
+    )
+
+    caplog.clear()  # descarta o log da preparação dos dados
+
+    resposta = client.post(ROTA, json={**CORPO, "mensagem": "Texto Sigiloso"}, headers=_token(usuario))
+
+    assert resposta.status_code == 201
+    assert [telefone for telefone, _ in falso.envios] == [*telefones, telefones[2]]
+    assert esperas == [5]
+    (alerta,) = _alertas(banco_migrado)
+    assert str(alerta.id) == resposta.json()["id"]
+    assert (alerta.status_envio, alerta.tentativas) == ("ENVIADO", 2)
+    assert _contar(banco_migrado, "tentativas_envio_sos") == 4
+    for dado in (*telefones, nome, "Texto Sigiloso", "12.345678", "65.432198"):
+        assert dado not in caplog.text, dado

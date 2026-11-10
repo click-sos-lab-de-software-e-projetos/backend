@@ -204,9 +204,9 @@ Com o PostGIS de dev, a Evolution local conectada (README, "Envio por WhatsApp")
 
 ## 6. Fechamento (a cada commit)
 
-- [ ] `ruff check .` e `pytest` verdes; com `TEST_DATABASE_URL`, `pytest -m integracao` verde.
-- [ ] Nada de telefone real, chave ou URL de servidor no diff.
-- [ ] Marcar o ticket em `plans/what-needs-to-be-done.md`; no SOS-06, atualizar `workers/` em `docs/project-structure.md` e o passo 6 do README ("nenhuma mensagem é enviada").
+- [x] `ruff check .` e `pytest` verdes; com `TEST_DATABASE_URL`, `pytest -m integracao` verde.
+- [x] Nada de telefone real, chave ou URL de servidor no diff.
+- [x] Marcar o ticket em `plans/what-needs-to-be-done.md`; no SOS-06, atualizar `workers/` em `docs/project-structure.md` e o passo 6 do README ("nenhuma mensagem é enviada").
 
 ## 7. Perguntas em aberto / suposições
 

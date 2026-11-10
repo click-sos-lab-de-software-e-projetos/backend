@@ -136,6 +136,8 @@ podman run -d --name evolution-api --network evolution -p 8080:8080 \
 
 Com um número pessoal, evite rajadas de mensagens: o WhatsApp pode banir números que enviam muitas mensagens automáticas.
 
+O worker registra cada envio no logger `app.workers.despacho_sos`, sempre pelo UUID do alerta (`alerta_id=...`): início, uma linha por rodada e o `status_envio` final. Telefone, nome, texto e coordenadas nunca aparecem no log. Limitação conhecida: se o servidor reiniciar durante o envio, o alerta fica `PENDENTE` e não é retomado.
+
 ## Testes e pre-commit
 
 ```bash

@@ -43,14 +43,28 @@ def despachar_alerta(
     enviador: EnviadorWhatsApp,
     esperar: Callable[[float], None] = time.sleep,
 ) -> None:
+    try:
+        _despachar(alerta_id, fabrica_sessao, enviador, esperar)
+    except Exception as erro:
+        # Só o tipo: a mensagem da exceção pode carregar telefone ou texto (SOS-08).
+        _registrar(alerta_id, "falha_inesperada tipo=%s", type(erro).__name__, nivel=logging.WARNING)
+        _marcar_erro_se_pendente(alerta_id, fabrica_sessao)
+
+
+def _despachar(
+    alerta_id: UUID,
+    fabrica_sessao: FabricaSessao,
+    enviador: EnviadorWhatsApp,
+    esperar: Callable[[float], None],
+) -> None:
     with fabrica_sessao() as sessao:
         alerta = sessao.get_one(AlertaSos, alerta_id)
-        contatos = sessao.scalars(
-            select(ContatoEmergencia).where(*condicoes_contato_apto(alerta.usuario_id))
-        ).all()
+        contatos = sessao.scalars(select(ContatoEmergencia).where(*condicoes_contato_apto(alerta.usuario_id))).all()
+        _registrar(alerta_id, "inicio contatos=%d", len(contatos))
         if not contatos:
             alerta.status_envio = "ERRO"
             sessao.commit()
+            _registrar(alerta_id, "fim status_envio=ERRO tentativas=0")
             return
 
         texto = _montar_texto(sessao, alerta)
@@ -58,8 +72,17 @@ def despachar_alerta(
         for rodada in range(1, MAXIMO_TENTATIVAS_ENVIO + 1):
             if rodada > 1:
                 esperar(ESPERAS_RETENTATIVA_S[rodada - 2])
+            tentados = len(pendentes)
             pendentes, enviados = _enviar_rodada(sessao, alerta, pendentes, texto, enviador, rodada)
             alerta.tentativas = rodada
+            _registrar(
+                alerta_id,
+                "rodada=%d enviados=%d falhas=%d repetir=%d",
+                rodada,
+                enviados,
+                tentados - enviados,
+                len(pendentes),
+            )
             # ENVIADO no primeiro sucesso e não muda mais; quem falhou segue sendo tentado.
             if enviados:
                 alerta.status_envio = "ENVIADO"
@@ -70,6 +93,24 @@ def despachar_alerta(
         if alerta.status_envio == "PENDENTE":
             alerta.status_envio = "ERRO"
             sessao.commit()
+        _registrar(alerta_id, "fim status_envio=%s tentativas=%d", alerta.status_envio, alerta.tentativas)
+
+
+def _registrar(alerta_id: UUID, formato: str, *args, nivel: int = logging.INFO) -> None:
+    """Log chave=valor pelo UUID do alerta; nunca telefone, nome, texto nem coordenadas."""
+    logger.log(nivel, "despacho_sos alerta_id=%s " + formato, alerta_id, *args, extra={"alerta_id": str(alerta_id)})
+
+
+def _marcar_erro_se_pendente(alerta_id: UUID, fabrica_sessao: FabricaSessao) -> None:
+    # ENVIADO não volta atrás: alguém já recebeu o alerta.
+    try:
+        with fabrica_sessao() as sessao:
+            alerta = sessao.get(AlertaSos, alerta_id)
+            if alerta is not None and alerta.status_envio == "PENDENTE":
+                alerta.status_envio = "ERRO"
+                sessao.commit()
+    except Exception as erro:
+        _registrar(alerta_id, "nao_marcou_erro tipo=%s", type(erro).__name__, nivel=logging.WARNING)
 
 
 def _enviar_rodada(
@@ -113,11 +154,9 @@ def _montar_texto(sessao: Session, alerta: AlertaSos) -> str:
     return montar_mensagem_emergencia(nome, latitude, longitude, alerta.mensagem).texto
 
 
-def _marcar_erro(alerta_id: UUID, fabrica_sessao: FabricaSessao, motivo: str) -> None:
-    logger.warning("despacho_sos alerta_id=%s sem_envio motivo=%s", alerta_id, motivo)
-    with fabrica_sessao() as sessao:
-        sessao.get_one(AlertaSos, alerta_id).status_envio = "ERRO"
-        sessao.commit()
+def _sem_enviador(alerta_id: UUID, fabrica_sessao: FabricaSessao, motivo: str) -> None:
+    _registrar(alerta_id, "sem_envio motivo=%r", motivo, nivel=logging.WARNING)
+    _marcar_erro_se_pendente(alerta_id, fabrica_sessao)
 
 
 @lru_cache(maxsize=1)
@@ -134,5 +173,5 @@ def obter_despacho(
         enviador = obter_enviador_whatsapp()
     except RuntimeError as erro:
         # A mensagem traz só o nome da variável ausente, nunca valores.
-        return partial(_marcar_erro, fabrica_sessao=fabrica_sessao, motivo=str(erro))
+        return partial(_sem_enviador, fabrica_sessao=fabrica_sessao, motivo=str(erro))
     return partial(despachar_alerta, fabrica_sessao=fabrica_sessao, enviador=enviador)
