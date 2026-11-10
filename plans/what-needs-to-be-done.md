@@ -118,7 +118,7 @@ O cliente do SOS-05 deve chamar `POST {EVOLUTION_API_URL}/message/sendText/{EVOL
 ## Tarefa 3 — Consultar o status do alerta (Regra 04 · SOSM-05)
 
 **Backend**
-- [ ] Criar `GET /api/v1/sos/alertas/{id}`, autenticada.
+- [x] Criar `GET /api/v1/sos/alertas/{id}`, autenticada.
   - Devolve `status_envio`, `tentativas` e `criado_em`.
   - Alerta de outra pessoa retorna 404.
   - Não devolve coordenadas nem telefones.

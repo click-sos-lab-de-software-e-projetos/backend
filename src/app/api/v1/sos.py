@@ -6,7 +6,11 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import obter_usuario_id
 from app.db.sessao import obter_sessao
-from app.schemas.sos import AlertaCriadoResposta, CriarAlertaRequisicao
+from app.schemas.sos import (
+    AlertaCriadoResposta,
+    AlertaStatusResposta,
+    CriarAlertaRequisicao,
+)
 from app.services import alertas as servico
 from app.workers.despacho_sos import Despacho, obter_despacho
 
@@ -19,6 +23,7 @@ MSG_SEM_CONTATOS = (
     "Nenhum contato ativo com consentimento registrado. "
     "Cadastre um contato e confirme o consentimento antes de acionar o S.O.S."
 )
+MSG_ALERTA_NAO_ENCONTRADO = "Alerta não encontrado."
 
 router = APIRouter(prefix="/api/v1/sos", tags=["sos"])
 
@@ -64,3 +69,26 @@ def criar_alerta(
     # Roda depois que a resposta sai: um WhatsApp lento não atrasa o app (SOS-06).
     tarefas.add_task(despacho, alerta.id)
     return alerta
+
+
+@router.get(
+    "/alertas/{alerta_id}",
+    response_model=AlertaStatusResposta,
+    summary="Consultar o status do alerta",
+    description=(
+        "Mostra se o alerta já foi enviado aos contatos (`PENDENTE`, `ENVIADO` ou `ERRO`) "
+        "e quantas rodadas de envio houve. O app consulta a cada poucos segundos até "
+        "`ENVIADO` ou `ERRO`. Não devolve coordenadas, mensagem nem telefones."
+    ),
+    responses={
+        401: {"description": "Token ausente, inválido ou expirado."},
+        404: {"description": "Alerta inexistente ou de outra pessoa."},
+    },
+)
+def consultar_alerta(alerta_id: UUID, usuario_id: UsuarioId, sessao: Sessao):
+    try:
+        return servico.obter_alerta(sessao, usuario_id, alerta_id)
+    except servico.AlertaNaoEncontrado:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=MSG_ALERTA_NAO_ENCONTRADO
+        ) from None

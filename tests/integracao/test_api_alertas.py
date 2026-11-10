@@ -17,7 +17,7 @@ from app.db.sessao import criar_engine, obter_fabrica_sessao, obter_sessao
 from app.main import app
 from app.services.whatsapp import Desfecho, ResultadoEnvio
 from app.workers.despacho_sos import despachar_alerta, obter_despacho
-from integracao.fabricas import inserir_contato, inserir_usuario
+from integracao.fabricas import inserir_alerta, inserir_contato, inserir_usuario
 
 SEGREDO_TESTE = "segredo-apenas-para-testes-com-32-bytes"
 ROTA = "/api/v1/sos/alertas"
@@ -255,3 +255,54 @@ def fluxo_sos_deve_enviar_a_ate_3_contatos_e_gravar_estados_finais(
     assert _contar(banco_migrado, "tentativas_envio_sos") == 4
     for dado in (*telefones, nome, "Texto Sigiloso", "12.345678", "65.432198"):
         assert dado not in caplog.text, dado
+
+
+# --- consulta do status (Tarefa 3) -----------------------------------------
+
+
+def _alerta_de(banco_migrado, usuario_id, **sobrescritas):
+    with banco_migrado.begin() as conexao:
+        return inserir_alerta(conexao, usuario_id, **sobrescritas).id
+
+
+def consultar_alerta_deve_devolver_id_status_tentativas_e_data(client, banco_migrado, ana):
+    alerta_id = _alerta_de(
+        banco_migrado, ana, mensagem="Texto Sigiloso", status_envio="ENVIADO", tentativas=2
+    )
+
+    resposta = client.get(f"{ROTA}/{alerta_id}", headers=_token(ana))
+
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    # Chaves exatas: nada de coordenadas, mensagem ou telefones.
+    assert set(corpo) == {"id", "status_envio", "tentativas", "criado_em"}
+    assert corpo["id"] == str(alerta_id)
+    assert corpo["status_envio"] == "ENVIADO"
+    assert corpo["tentativas"] == 2
+    assert datetime.fromisoformat(corpo["criado_em"]).tzinfo is not None
+
+
+def consultar_alerta_criado_pelo_post_deve_mostrar_o_estado_atual(client, ana):
+    alerta_id = client.post(ROTA, json=CORPO, headers=_token(ana)).json()["id"]
+
+    corpo = client.get(f"{ROTA}/{alerta_id}", headers=_token(ana)).json()
+
+    assert corpo["status_envio"] == "PENDENTE"
+    assert corpo["tentativas"] == 0
+
+
+def consultar_alerta_de_outra_pessoa_deve_responder_404_igual_ao_inexistente(
+    client, banco_migrado, ana
+):
+    bia = _usuario(banco_migrado, APTO)
+    alerta_da_ana = _alerta_de(banco_migrado, ana)
+
+    de_outra = client.get(f"{ROTA}/{alerta_da_ana}", headers=_token(bia))
+    inexistente = client.get(f"{ROTA}/{uuid4()}", headers=_token(bia))
+
+    assert de_outra.status_code == inexistente.status_code == 404
+    assert de_outra.json() == inexistente.json()
+
+
+def consultar_alerta_com_id_invalido_deve_responder_422(client, ana):
+    assert client.get(f"{ROTA}/nao-e-uuid", headers=_token(ana)).status_code == 422

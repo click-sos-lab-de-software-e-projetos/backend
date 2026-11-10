@@ -23,6 +23,19 @@ class SemContatosAptos(Exception):
     """Nenhum contato ativo e com consentimento registrado."""
 
 
+class AlertaNaoEncontrado(Exception):
+    """Alerta inexistente ou de outra pessoa: os dois casos são indistinguíveis."""
+
+
+def obter_alerta(sessao: Session, usuario_id: UUID, alerta_id: UUID) -> AlertaSos:
+    alerta = sessao.scalar(
+        select(AlertaSos).where(AlertaSos.id == alerta_id, AlertaSos.usuario_id == usuario_id)
+    )
+    if alerta is None:
+        raise AlertaNaoEncontrado
+    return alerta
+
+
 def criar_alerta(sessao: Session, usuario_id: UUID, dados: CriarAlertaRequisicao) -> AlertaSos:
     if sessao.get(Usuario, usuario_id) is None:
         raise UsuarioNaoEncontrado

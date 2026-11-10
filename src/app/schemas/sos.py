@@ -31,3 +31,12 @@ class AlertaCriadoResposta(BaseModel):
     id: UUID
     status_envio: Literal["PENDENTE"]
     criado_em: datetime
+
+
+class AlertaStatusResposta(BaseModel):
+    """Estado do envio (Regra 04). Sem coordenadas, mensagem nem telefones."""
+
+    id: UUID
+    status_envio: Literal["PENDENTE", "ENVIADO", "ERRO"]
+    tentativas: int
+    criado_em: datetime
