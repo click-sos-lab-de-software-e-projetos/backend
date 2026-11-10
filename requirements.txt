@@ -1,0 +1,2 @@
+# Render usa "pip install -r requirements.txt" por padrão; instala o pacote do pyproject.toml.
+.
