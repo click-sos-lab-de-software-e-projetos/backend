@@ -73,12 +73,12 @@ def _sem_not_null(conjunto: set[tuple[str, str]]) -> set[tuple[str, str]]:
 
 
 @pytest.mark.parametrize("tabela", sorted(RESTRICOES_ESPERADAS))
-def restricoes_devem_ser_identicas_as_do_neon(banco_migrado, tabela):
+def restricoes_deve_ser_identicas_as_do_neon(banco_migrado, tabela):
     assert _sem_not_null(restricoes(banco_migrado, tabela)) == RESTRICOES_ESPERADAS[tabela]
 
 
 @pytest.mark.parametrize("tabela", sorted(INDICES_ESPERADOS))
-def indices_secundarios_devem_ser_identicos_aos_do_neon(banco_migrado, tabela):
+def indices_secundarios_deve_ser_identicos_aos_do_neon(banco_migrado, tabela):
     secundarios = {
         definicao
         for definicao in definicoes_de_indices(banco_migrado, tabela)
@@ -87,7 +87,7 @@ def indices_secundarios_devem_ser_identicos_aos_do_neon(banco_migrado, tabela):
     assert secundarios == INDICES_ESPERADOS[tabela]
 
 
-def colunas_geometricas_devem_usar_srid_4326(banco_migrado):
+def colunas_geometricas_deve_usar_srid_4326(banco_migrado):
     with banco_migrado.connect() as conexao:
         linhas = conexao.execute(
             text(

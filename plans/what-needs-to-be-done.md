@@ -178,7 +178,7 @@ Dados úteis das ocorrências:
 **Credenciais:** o backend não guarda a URL do Neon. O `.env` é baixado com `NEON_ENV_URL=... ./scripts/fetch-env.sh`, e `DATABASE_URL` aponta para o Neon. Os testes continuam no PostGIS descartável, nunca no Neon.
 
 **Backend**
-- [ ] MAP-01 e MAP-02: trazer para o repositório as migrações `0006` e `0007` exatamente como estão no Neon. Elas criam o schema `interno`, as 3 tabelas internas e `regioes_seguranca`.
+- [x] MAP-01 e MAP-02: trazer para o repositório as migrações `0006` e `0007` exatamente como estão no Neon. Elas criam o schema `interno`, as 3 tabelas internas e `regioes_seguranca`.
   - Decidido: reescrever as migrações a partir do schema atual (colunas, `CHECK`, FKs e índices GiST listados acima).
   - Testar as migrações no PostGIS descartável. No Neon, só rodar `alembic stamp 0007`, sem recriar nada.
 - [ ] MAP-03: trazer também o script de carga (SSP e GeoSampa), idempotente pelo `arquivo_sha256` e pela `chave_fonte`, com testes.
