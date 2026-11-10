@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from app.schemas.auth import (
     AtualizarPerfilRequisicao,
     CadastroRequisicao,
+    ExcluirContaRequisicao,
     LoginRequisicao,
     TrocarSenhaRequisicao,
     UsuarioResposta,
@@ -135,3 +136,13 @@ def trocar_senha_valida_deve_ser_aceita():
 def trocar_senha_invalida_deve_ser_rejeitada(corpo):
     with pytest.raises(ValidationError):
         TrocarSenhaRequisicao.model_validate(corpo)
+
+
+def excluir_conta_com_senha_deve_ser_aceita():
+    assert ExcluirContaRequisicao.model_validate({"senha": "qualquer"}).senha == "qualquer"
+
+
+@pytest.mark.parametrize("corpo", [{}, {"senha": ""}, {"senha": "x", "confirmar": True}])
+def excluir_conta_sem_senha_ou_com_campo_extra_deve_ser_rejeitada(corpo):
+    with pytest.raises(ValidationError):
+        ExcluirContaRequisicao.model_validate(corpo)

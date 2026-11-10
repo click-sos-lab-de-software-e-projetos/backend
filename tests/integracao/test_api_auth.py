@@ -9,7 +9,13 @@ from sqlalchemy.orm import Session
 from app.api.deps import obter_segredo_jwt, obter_validade_jwt_min
 from app.db.sessao import criar_engine, obter_sessao
 from app.main import app
-from integracao.fabricas import inserir_usuario
+from integracao.fabricas import (
+    inserir_alerta,
+    inserir_contato,
+    inserir_regiao,
+    inserir_tentativa,
+    inserir_usuario,
+)
 
 SEGREDO_TESTE = "segredo-apenas-para-testes-com-32-bytes"
 CADASTRO = "/api/v1/auth/cadastro"
@@ -224,6 +230,7 @@ def trocar_senha_com_a_senha_atual_errada_deve_responder_400_sem_mudar(client):
     [
         ("patch", "/api/v1/auth/me", {"nome_completo": "Nome Novo"}),
         ("post", "/api/v1/auth/me/senha", {"senha_atual": SENHA, "senha_nova": "senha-nova-456"}),
+        ("delete", "/api/v1/auth/me", {"senha": SENHA}),
     ],
 )
 def alterar_perfil_ou_senha_de_usuario_removido_deve_responder_401(client, banco_migrado, metodo, caminho, corpo):
@@ -236,3 +243,97 @@ def alterar_perfil_ou_senha_de_usuario_removido_deve_responder_401(client, banco
 
     assert resposta.status_code == 401
     assert resposta.headers["www-authenticate"] == "Bearer"
+
+
+# --- exclusão de conta ---------------------------------------------------------
+
+
+def _dados_da_pessoa(conexao, usuario_id, status_envio="ENVIADO") -> dict:
+    contato = inserir_contato(conexao, usuario_id).id
+    alerta = inserir_alerta(conexao, usuario_id, mensagem="socorro", status_envio=status_envio).id
+    inserir_tentativa(conexao, alerta, contato, status="SUCESSO")
+    regiao = inserir_regiao(conexao, 0.0, 0.0, 0.01, 0.01).id
+    conexao.execute(
+        text("INSERT INTO feedbacks_comunidade (usuario_id, regiao_id, categoria) VALUES (:u, :r, 'ASSALTO')"),
+        {"u": usuario_id, "r": regiao},
+    )
+    return {"contato": contato, "alerta": alerta}
+
+
+def _retrato(banco_migrado) -> dict:
+    with banco_migrado.connect() as conexao:
+        return {
+            "usuarios": conexao.execute(text("SELECT id FROM usuarios ORDER BY id")).all(),
+            "contatos": conexao.execute(text("SELECT id FROM contatos_emergencia ORDER BY id")).all(),
+            "feedbacks": conexao.execute(text("SELECT usuario_id FROM feedbacks_comunidade ORDER BY id")).all(),
+            "alertas": conexao.execute(
+                text(
+                    "SELECT id, usuario_id, localizacao IS NULL AS sem_local, mensagem, "
+                    "anonimizado_em IS NOT NULL AS anonimizado, status_envio FROM alertas_sos ORDER BY id"
+                )
+            ).all(),
+            "tentativas": conexao.execute(
+                text("SELECT alerta_id, contato_id FROM tentativas_envio_sos ORDER BY id")
+            ).all(),
+        }
+
+
+@pytest.fixture
+def pessoa_com_dados(client, banco_migrado):
+    """A pessoa do cadastro com contato, alerta, tentativa e feedback, e outra pessoa com o mesmo."""
+    usuario_id = client.post(CADASTRO, json=CORPO).json()["id"]
+    cabecalhos = {"Authorization": f"Bearer {_login(client).json()['access_token']}"}
+    with banco_migrado.begin() as conexao:
+        dados = _dados_da_pessoa(conexao, usuario_id)
+        outra = inserir_usuario(conexao).id
+        _dados_da_pessoa(conexao, outra)
+    return usuario_id, cabecalhos, dados, outra
+
+
+def excluir_conta_deve_apagar_a_pessoa_e_anonimizar_os_alertas(client, banco_migrado, pessoa_com_dados):
+    usuario_id, cabecalhos, dados, outra = pessoa_com_dados
+
+    resposta = client.request("DELETE", "/api/v1/auth/me", json={"senha": SENHA}, headers=cabecalhos)
+
+    assert resposta.status_code == 204
+    assert resposta.content == b""
+    retrato = _retrato(banco_migrado)
+    assert [linha.id for linha in retrato["usuarios"]] == [outra]
+    assert len(retrato["contatos"]) == 1
+    assert [linha.usuario_id for linha in retrato["feedbacks"]] == [outra]
+    alerta = next(linha for linha in retrato["alertas"] if linha.id == dados["alerta"])
+    assert (alerta.usuario_id, alerta.sem_local, alerta.mensagem, alerta.anonimizado, alerta.status_envio) == (
+        None,
+        True,
+        None,
+        True,
+        "ENVIADO",
+    )
+    tentativa = next(linha for linha in retrato["tentativas"] if linha.alerta_id == dados["alerta"])
+    assert tentativa.contato_id is None
+    alerta_da_outra = next(linha for linha in retrato["alertas"] if linha.id != dados["alerta"])
+    assert (alerta_da_outra.usuario_id, alerta_da_outra.sem_local, alerta_da_outra.anonimizado) == (outra, False, False)
+    assert client.get("/api/v1/auth/me", headers=cabecalhos).status_code == 401
+    assert _login(client).status_code == 401
+
+
+def excluir_conta_com_senha_errada_deve_responder_400_sem_apagar(client, banco_migrado, pessoa_com_dados):
+    _, cabecalhos, _, _ = pessoa_com_dados
+    antes = _retrato(banco_migrado)
+
+    resposta = client.request("DELETE", "/api/v1/auth/me", json={"senha": "errada"}, headers=cabecalhos)
+
+    assert resposta.status_code == 400
+    assert _retrato(banco_migrado) == antes
+
+
+def excluir_conta_com_alerta_pendente_deve_responder_409_sem_apagar(client, banco_migrado, pessoa_com_dados):
+    usuario_id, cabecalhos, _, _ = pessoa_com_dados
+    with banco_migrado.begin() as conexao:
+        inserir_alerta(conexao, usuario_id, status_envio="PENDENTE")
+    antes = _retrato(banco_migrado)
+
+    resposta = client.request("DELETE", "/api/v1/auth/me", json={"senha": SENHA}, headers=cabecalhos)
+
+    assert resposta.status_code == 409
+    assert _retrato(banco_migrado) == antes

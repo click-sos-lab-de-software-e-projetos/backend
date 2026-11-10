@@ -263,8 +263,8 @@ Dados úteis das ocorrências:
 **Acesso aos dados de produção:** só a Yume.
 
 **Backend**
-- [ ] Rotina diária (comando ou job) que anonimiza `alertas_sos` com mais de 180 dias e apaga os textos e telefones de `tentativas_envio_sos` ligadas a eles. Precisa ser idempotente e ter testes.
-- [ ] `DELETE /api/v1/auth/me`: apaga a pessoa e os contatos dela e anonimiza os alertas na hora.
+- [x] Rotina diária (comando ou job) que anonimiza `alertas_sos` com mais de 180 dias e apaga os textos e telefones de `tentativas_envio_sos` ligadas a eles. Precisa ser idempotente e ter testes. *Feito como script manual (`scripts/anonimizar_alertas.py`); o agendamento ficou para depois.*
+- [x] `DELETE /api/v1/auth/me`: apaga a pessoa e os contatos dela e anonimiza os alertas na hora.
 
 **Frontend**
 - [ ] Tela de privacidade explicando a retenção de 180 dias e a anonimização.

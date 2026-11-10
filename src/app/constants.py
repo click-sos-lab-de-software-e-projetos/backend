@@ -50,3 +50,5 @@ LIMITE_REGIOES_MAPA = 50
 # Feedback comunitário (MAP-04). Não entra no score (Regra 05).
 CATEGORIAS_FEEDBACK = ("ILUMINACAO", "ASSALTO", "ASSEDIO", "MOVIMENTO", "POLICIAMENTO", "OUTRO")
 LIMITE_TEXTO_FEEDBACK = 500
+# Retenção dos alertas (Regra 08, YUME-03): depois disso, o alerta é anonimizado.
+RETENCAO_ALERTAS_DIAS = 180

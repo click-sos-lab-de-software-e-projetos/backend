@@ -11,6 +11,7 @@ from app.db.sessao import obter_sessao
 from app.schemas.auth import (
     AtualizarPerfilRequisicao,
     CadastroRequisicao,
+    ExcluirContaRequisicao,
     LoginRequisicao,
     TokenResposta,
     TrocarSenhaRequisicao,
@@ -27,6 +28,8 @@ ValidadeMin = Annotated[int, Depends(obter_validade_jwt_min)]
 MSG_EMAIL_EM_USO = "E-mail já cadastrado."
 MSG_CREDENCIAIS = "E-mail ou senha inválidos."
 MSG_SENHA_ATUAL = "Senha atual incorreta."
+MSG_SENHA_INCORRETA = "Senha incorreta."
+MSG_ALERTA_EM_ENVIO = "Há um alerta S.O.S em envio. Tente de novo quando o envio terminar."
 RESPOSTA_401 = {401: {"description": "Token ausente, inválido ou expirado."}}
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
@@ -141,6 +144,35 @@ def trocar_senha(dados: TrocarSenhaRequisicao, usuario_id: UsuarioId, sessao: Se
         raise _nao_autenticado() from None
     except servico.SenhaAtualIncorreta:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=MSG_SENHA_ATUAL) from None
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete(
+    "/me",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    summary="Excluir minha conta",
+    description=(
+        "Exige a senha. Apaga a pessoa, os contatos e os feedbacks. Os alertas ficam "
+        "anonimizados, sem dono, coordenadas nem mensagem, só para estatística. "
+        "Não dá para desfazer."
+    ),
+    responses={
+        400: {"description": MSG_SENHA_INCORRETA},
+        **RESPOSTA_401,
+        409: {"description": MSG_ALERTA_EM_ENVIO},
+        422: {"description": "Corpo inválido (sem senha ou com campo extra)."},
+    },
+)
+def excluir_conta(dados: ExcluirContaRequisicao, usuario_id: UsuarioId, sessao: Sessao):
+    try:
+        servico.excluir_conta(sessao, usuario_id, dados.senha)
+    except servico.UsuarioNaoEncontrado:
+        raise _nao_autenticado() from None
+    except servico.SenhaAtualIncorreta:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=MSG_SENHA_INCORRETA) from None
+    except servico.AlertaEmEnvio:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=MSG_ALERTA_EM_ENVIO) from None
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

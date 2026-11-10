@@ -100,6 +100,14 @@ class TrocarSenhaRequisicao(BaseModel):
     senha_nova: SenhaNova
 
 
+class ExcluirContaRequisicao(BaseModel):
+    """A senha confirma a exclusão; um token roubado sozinho não apaga a conta."""
+
+    model_config = ConfigDict(extra="forbid", json_schema_extra={"examples": [{"senha": "senha-ficticia"}]})
+
+    senha: Annotated[str, StringConstraints(min_length=1)]
+
+
 class UsuarioResposta(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

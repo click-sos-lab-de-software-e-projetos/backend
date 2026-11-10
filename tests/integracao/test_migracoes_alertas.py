@@ -4,7 +4,7 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 
 from app.constants import LIMITE_MENSAGEM_SOS
 from integracao.fabricas import inserir_alerta, inserir_usuario
-from integracao.inspecao import colunas, definicoes_de_indices
+from integracao.inspecao import colunas, definicoes_de_indices, restricoes
 
 
 @pytest.fixture
@@ -16,12 +16,13 @@ def usuario_id(banco_migrado):
 def tabela_alertas_deve_ter_colunas_esperadas(banco_migrado):
     assert colunas(banco_migrado, "alertas_sos") == {
         "id": ("uuid", None, False),
-        "usuario_id": ("uuid", None, False),
-        "localizacao": ("USER-DEFINED", None, False),
+        "usuario_id": ("uuid", None, True),
+        "localizacao": ("USER-DEFINED", None, True),
         "mensagem": ("character varying", LIMITE_MENSAGEM_SOS, True),
         "status_envio": ("character varying", 20, False),
         "tentativas": ("integer", None, False),
         "criado_em": ("timestamp with time zone", None, False),
+        "anonimizado_em": ("timestamp with time zone", None, True),
     }
 
 
@@ -102,8 +103,32 @@ def mensagem_acima_do_limite_deve_ser_rejeitada(banco_migrado, usuario_id):
         inserir_alerta(conexao, usuario_id, mensagem="a" * (LIMITE_MENSAGEM_SOS + 1))
 
 
-def remover_usuario_deve_remover_seus_alertas(banco_migrado, usuario_id):
+def remover_usuario_deve_manter_seus_alertas_sem_dono(banco_migrado, usuario_id):
     with banco_migrado.begin() as conexao:
-        inserir_alerta(conexao, usuario_id)
+        alerta = inserir_alerta(conexao, usuario_id)
         conexao.execute(text("DELETE FROM usuarios WHERE id = :id"), {"id": usuario_id})
-        assert conexao.execute(text("SELECT count(*) FROM alertas_sos")).scalar() == 0
+        dono = conexao.execute(text("SELECT usuario_id FROM alertas_sos WHERE id = :id"), {"id": alerta.id}).one()
+    assert dono.usuario_id is None
+
+
+def alertas_deve_ter_fk_set_null_e_check_de_anonimizacao(banco_migrado):
+    definicoes = dict(restricoes(banco_migrado, "alertas_sos"))
+    assert definicoes["alertas_sos_usuario_id_fkey"] == (
+        "FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL"
+    )
+    assert definicoes["ck_alertas_localizacao_ou_anonimizado"] == (
+        "CHECK (((localizacao IS NOT NULL) OR (anonimizado_em IS NOT NULL)))"
+    )
+
+
+def alerta_sem_localizacao_deve_exigir_anonimizado_em(banco_migrado, usuario_id):
+    with banco_migrado.begin() as conexao:
+        alerta = inserir_alerta(conexao, usuario_id)
+        conexao.execute(
+            text("UPDATE alertas_sos SET localizacao = NULL, anonimizado_em = now() WHERE id = :id"), {"id": alerta.id}
+        )
+
+    with pytest.raises(IntegrityError), banco_migrado.begin() as conexao:
+        conexao.execute(
+            text("UPDATE alertas_sos SET anonimizado_em = NULL WHERE id = :id"), {"id": alerta.id}
+        )

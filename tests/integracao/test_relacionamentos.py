@@ -32,12 +32,15 @@ def usuario_com_tres_contatos_e_um_alerta_deve_relacionar_tentativas_a_cada_cont
     assert {dono for _, dono in linhas} == {usuario_id}
 
 
-def remover_usuario_deve_limpar_contatos_alertas_e_tentativas_em_cascata(banco_migrado):
+def remover_usuario_deve_limpar_contatos_e_manter_alertas_e_tentativas_sem_vinculo(banco_migrado):
     with banco_migrado.begin() as conexao:
-        usuario_id, _, _ = _cenario_completo(conexao)
+        usuario_id, alerta_id, _ = _cenario_completo(conexao)
         conexao.execute(text("DELETE FROM usuarios WHERE id = :id"), {"id": usuario_id})
         restantes = {
             tabela: conexao.execute(text(f"SELECT count(*) FROM {tabela}")).scalar()
             for tabela in TABELAS
         }
-    assert restantes == dict.fromkeys(TABELAS, 0)
+        dono = conexao.execute(text("SELECT usuario_id FROM alertas_sos WHERE id = :id"), {"id": alerta_id}).scalar()
+        contatos = conexao.execute(text("SELECT count(contato_id) FROM tentativas_envio_sos")).scalar()
+    assert restantes == {"usuarios": 0, "contatos_emergencia": 0, "alertas_sos": 1, "tentativas_envio_sos": 3}
+    assert (dono, contatos) == (None, 0)

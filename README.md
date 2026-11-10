@@ -1,6 +1,6 @@
 # Click S.O.S — Backend
 
-Base técnica inicial do backend do Click S.O.S. Neste estágio existem o cadastro e login com JWT em `/api/v1/auth` (AUTH-01), a edição do perfil e a troca de senha (Tarefa 7), a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01), o consentimento do contato por link de uso único, a criação do alerta em `POST /api/v1/sos/alertas` (SOS-03), que grava o alerta como `PENDENTE`, e a consulta do status em `GET /api/v1/sos/alertas/{id}`. As tabelas do mapa (`regioes_seguranca` e o schema `interno` com as ocorrências da SSP) já existem, `GET /api/v1/mapa/regioes` devolve os distritos próximos com score e cor, e `POST /api/v1/mapa/regioes/{id}/feedbacks` recebe o feedback da comunidade (veja "Mapa de risco"). Depois da resposta, o alerta é enviado pelo WhatsApp aos contatos aptos, pela Evolution API (SOS-05 e SOS-06).
+Base técnica inicial do backend do Click S.O.S. Neste estágio existem o cadastro e login com JWT em `/api/v1/auth` (AUTH-01), a edição do perfil, a troca de senha (Tarefa 7) e a exclusão de conta (Tarefa 10), a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01), o consentimento do contato por link de uso único, a criação do alerta em `POST /api/v1/sos/alertas` (SOS-03), que grava o alerta como `PENDENTE`, e a consulta do status em `GET /api/v1/sos/alertas/{id}`. As tabelas do mapa (`regioes_seguranca` e o schema `interno` com as ocorrências da SSP) já existem, `GET /api/v1/mapa/regioes` devolve os distritos próximos com score e cor, e `POST /api/v1/mapa/regioes/{id}/feedbacks` recebe o feedback da comunidade (veja "Mapa de risco"). Depois da resposta, o alerta é enviado pelo WhatsApp aos contatos aptos, pela Evolution API (SOS-05 e SOS-06).
 
 ## Requisitos
 
@@ -34,7 +34,7 @@ Com a aplicação iniciada, consulte `http://localhost:8000/health`. A documenta
 
 ## Testar as rotas privadas no Swagger
 
-As rotas de `/api/v1/contatos` e `/api/v1/sos/alertas` exigem um banco migrado e um JWT, obtido pelo cadastro e login de `/api/v1/auth` (AUTH-01). O token vale 24 horas (ajuste com `JWT_EXPIRACAO_MIN`) e não é renovado: ao expirar, faça login de novo. `GET /api/v1/auth/me` devolve o perfil da pessoa dona do token. `PATCH /api/v1/auth/me` altera `nome_completo` e/ou `telefone_pessoal` (só os campos enviados; o e-mail não é editável). `POST /api/v1/auth/me/senha` com `{"senha_atual", "senha_nova"}` troca a senha e responde `204`; senha atual errada responde `400`. Tokens emitidos antes da troca continuam válidos até expirar.
+As rotas de `/api/v1/contatos` e `/api/v1/sos/alertas` exigem um banco migrado e um JWT, obtido pelo cadastro e login de `/api/v1/auth` (AUTH-01). O token vale 24 horas (ajuste com `JWT_EXPIRACAO_MIN`) e não é renovado: ao expirar, faça login de novo. `GET /api/v1/auth/me` devolve o perfil da pessoa dona do token. `PATCH /api/v1/auth/me` altera `nome_completo` e/ou `telefone_pessoal` (só os campos enviados; o e-mail não é editável). `POST /api/v1/auth/me/senha` com `{"senha_atual", "senha_nova"}` troca a senha e responde `204`; senha atual errada responde `400`. Tokens emitidos antes da troca continuam válidos até expirar. `DELETE /api/v1/auth/me` com `{"senha"}` exclui a conta (veja "Retenção e privacidade").
 
 ### Consentimento do contato
 
@@ -159,6 +159,17 @@ O app consulta `GET /api/v1/mapa/regioes?latitude=...&longitude=...&raio=3000` c
 
 Para relatar algo sobre um distrito, o app envia `POST /api/v1/mapa/regioes/{id}/feedbacks` com o token e o corpo `{"categoria": "ILUMINACAO", "texto": "..."}` (MAP-04), em que `{id}` é o `id` público devolvido por `/mapa/regioes`. As categorias são `ILUMINACAO`, `ASSALTO`, `ASSEDIO`, `MOVIMENTO`, `POLICIAMENTO` e `OUTRO`. O texto é opcional, tem até 500 caracteres e é obrigatório em `OUTRO`. O feedback é gravado como `PENDENTE` em `feedbacks_comunidade` e responde `201`; distrito desconhecido responde `404`. O feedback não altera o score, a cor nem a resposta de `/mapa/regioes` (Regra 05).
 
+## Retenção e privacidade
+
+Alertas e localização ficam guardados por 180 dias (Regra 08, YUME-03). Depois disso, o alerta é anonimizado: as coordenadas, a mensagem e o vínculo das tentativas com os contatos são apagados, e o status, as tentativas e as datas ficam para estatística. A anonimização é um script manual, sem agendamento no MVP; sem `--gravar`, só mostra quantos alertas seriam anonimizados. Rodar de novo não muda os já anonimizados:
+
+```bash
+python scripts/anonimizar_alertas.py
+python scripts/anonimizar_alertas.py --gravar
+```
+
+`DELETE /api/v1/auth/me` com o token e o corpo `{"senha": "..."}` exclui a conta e responde `204`: apaga a pessoa, os contatos e os feedbacks, e anonimiza na hora os alertas, que ficam sem dono. Senha errada responde `400`; com um alerta ainda `PENDENTE`, `409` (espere o envio terminar). O `downgrade` da revisão `0010` apaga os alertas anonimizados ou sem dono, porque as colunas voltam a ser obrigatórias.
+
 ## Testes e pre-commit
 
 ```bash
@@ -197,7 +208,7 @@ alembic upgrade head --sql  # mostra o SQL sem executar
 alembic check               # confirma que os modelos em src/app/db/models.py batem com as migrações
 ```
 
-As revisões `0006` e `0007` (schema `interno` e `regioes_seguranca`) foram aplicadas no Neon antes de estarem no Git e depois reescritas a partir do schema real. No Neon, `alembic upgrade head` parte da `0007` e aplica a `0008` e a `0009` (`feedbacks_comunidade`); não rode `downgrade` lá.
+As revisões `0006` e `0007` (schema `interno` e `regioes_seguranca`) foram aplicadas no Neon antes de estarem no Git e depois reescritas a partir do schema real. No Neon, `alembic upgrade head` parte da `0007` e aplica a `0008`, a `0009` (`feedbacks_comunidade`) e a `0010` (alertas anonimizados); não rode `downgrade` lá.
 
 ## Variáveis de ambiente
 

@@ -97,6 +97,7 @@ def _servico_proibido(*_):
     [
         ("patch", ME, {"nome_completo": "Outro Nome"}),
         ("post", SENHA_ME, {"senha_atual": "atual", "senha_nova": "senha-nova-123"}),
+        ("delete", ME, {"senha": "atual"}),
     ],
 )
 def alterar_perfil_ou_senha_sem_token_deve_responder_401_sem_usar_o_banco(client, metodo, caminho, corpo):
@@ -112,6 +113,8 @@ def alterar_perfil_ou_senha_sem_token_deve_responder_401_sem_usar_o_banco(client
         ("patch", ME, {"email": "outra@example.com"}),
         ("patch", ME, {"telefone_pessoal": None}),
         ("post", SENHA_ME, {"senha_atual": "atual", "senha_nova": "curta"}),
+        ("delete", ME, {}),
+        ("delete", ME, {"senha": ""}),
     ],
 )
 def alterar_perfil_ou_senha_com_corpo_invalido_deve_responder_422_sem_chamar_o_servico(
@@ -120,6 +123,7 @@ def alterar_perfil_ou_senha_com_corpo_invalido_deve_responder_422_sem_chamar_o_s
     app.dependency_overrides[obter_sessao] = lambda: None
     monkeypatch.setattr(servico, "atualizar_perfil", _servico_proibido, raising=False)
     monkeypatch.setattr(servico, "trocar_senha", _servico_proibido, raising=False)
+    monkeypatch.setattr(servico, "excluir_conta", _servico_proibido, raising=False)
 
     assert client.request(metodo, caminho, json=corpo, headers=_token()).status_code == 422
 
@@ -132,3 +136,9 @@ def openapi_deve_documentar_edicao_do_perfil_e_troca_de_senha_como_rotas_privada
     assert {"204", "400", "401", "422"} <= set(senha["responses"])
     assert {"HTTPBearer": []} in patch["security"]
     assert {"HTTPBearer": []} in senha["security"]
+
+
+def openapi_deve_documentar_exclusao_de_conta_como_rota_privada():
+    excluir = app.openapi()["paths"][ME]["delete"]
+    assert {"204", "400", "401", "409", "422"} <= set(excluir["responses"])
+    assert {"HTTPBearer": []} in excluir["security"]

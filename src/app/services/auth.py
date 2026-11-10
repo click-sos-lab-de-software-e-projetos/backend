@@ -1,20 +1,22 @@
-"""Cadastro, login e perfil (AUTH-01, Tarefa 7, Regra 09).
+"""Cadastro, login, perfil e exclusão de conta (AUTH-01, Tarefas 7 e 10, Regras 08 e 09).
 
 O login não revela se o e-mail existe: e-mail desconhecido e senha errada
 lançam a mesma exceção e gastam o mesmo tempo de bcrypt.
 """
 
+from datetime import UTC, datetime
 from functools import lru_cache
 from uuid import UUID
 
 from psycopg.errors import UniqueViolation
-from sqlalchemy import func, select
+from sqlalchemy import delete, exists, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.security import gerar_hash_senha, verificar_senha
-from app.db.models import Usuario
+from app.db.models import AlertaSos, Usuario
 from app.schemas.auth import AtualizarPerfilRequisicao, CadastroRequisicao
+from app.services.retencao import anonimizar_alertas_da_pessoa
 
 INDICE_EMAIL_UNICO = "uq_usuarios_email_minusculo"
 
@@ -33,6 +35,10 @@ class UsuarioNaoEncontrado(Exception):
 
 class SenhaAtualIncorreta(Exception):
     pass
+
+
+class AlertaEmEnvio(Exception):
+    """A pessoa tem um alerta PENDENTE; a conta só pode ser excluída depois do envio."""
 
 
 def cadastrar(sessao: Session, dados: CadastroRequisicao) -> Usuario:
@@ -82,6 +88,22 @@ def trocar_senha(sessao: Session, usuario_id: UUID, senha_atual: str, senha_nova
     if not verificar_senha(senha_atual, usuario.senha_hash):
         raise SenhaAtualIncorreta
     usuario.senha_hash = gerar_hash_senha(senha_nova)
+    sessao.commit()
+
+
+def excluir_conta(sessao: Session, usuario_id: UUID, senha: str) -> None:
+    """Apaga a pessoa; contatos e feedbacks caem por CASCADE e os alertas ficam anonimizados, sem dono."""
+    # FOR UPDATE: um alerta criado durante a exclusão espera, e depois falha pela FK.
+    usuario = sessao.scalar(select(Usuario).where(Usuario.id == usuario_id).with_for_update())
+    if usuario is None:
+        raise UsuarioNaoEncontrado
+    if not verificar_senha(senha, usuario.senha_hash):
+        raise SenhaAtualIncorreta
+    pendente = exists().where(AlertaSos.usuario_id == usuario_id, AlertaSos.status_envio == "PENDENTE")
+    if sessao.scalar(select(pendente)):
+        raise AlertaEmEnvio
+    anonimizar_alertas_da_pessoa(sessao, usuario_id, datetime.now(UTC))
+    sessao.execute(delete(Usuario).where(Usuario.id == usuario_id))
     sessao.commit()
 
 

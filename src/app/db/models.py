@@ -72,14 +72,19 @@ class AlertaSos(Base):
             "status_envio IN ('PENDENTE', 'ENVIADO', 'ERRO')", name="ck_alertas_status_envio"
         ),
         CheckConstraint("tentativas >= 0", name="ck_alertas_tentativas_nao_negativas"),
+        CheckConstraint(
+            "localizacao IS NOT NULL OR anonimizado_em IS NOT NULL",
+            name="ck_alertas_localizacao_ou_anonimizado",
+        ),
         Index("ix_alertas_sos_localizacao", "localizacao", postgresql_using="gist"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, server_default=UUID_GERADO)
-    usuario_id: Mapped[UUID] = mapped_column(
-        ForeignKey("usuarios.id", ondelete="CASCADE"), index=True
+    # NULL depois da exclusão da conta: o alerta anonimizado fica para estatística (Regra 08).
+    usuario_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("usuarios.id", ondelete="SET NULL"), index=True
     )
-    localizacao: Mapped[WKBElement] = mapped_column(
+    localizacao: Mapped[WKBElement | None] = mapped_column(
         Geometry("POINT", srid=4326, spatial_index=False)
     )
     mensagem: Mapped[str | None] = mapped_column(String(LIMITE_MENSAGEM_SOS))
@@ -88,6 +93,7 @@ class AlertaSos(Base):
     criado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    anonimizado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class TentativaEnvioSos(Base):
