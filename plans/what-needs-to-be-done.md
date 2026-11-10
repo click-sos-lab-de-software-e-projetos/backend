@@ -245,13 +245,13 @@ Dados úteis das ocorrências:
 **Decidido (09/11):** guardar o login entre aberturas do app com `flutter_secure_storage` (Regra 09).
 
 **Backend**
-- [ ] Nada no MVP: não há refresh token. Com 24 h de validade, a pessoa faz login de novo uma vez por dia.
+- [x] Nada no MVP: não há refresh token. Com 24 h de validade, a pessoa faz login de novo uma vez por dia.
 
 **Frontend**
-- [ ] Adicionar `flutter_secure_storage` e gravar o token no login.
-- [ ] Ao abrir o app, ler o token e validar com `GET /auth/me`. Se responder 401, apagar o token e ir para o login.
-- [ ] Apagar o token no logout e quando qualquer requisição autenticada responder 401.
-- [ ] Testes com um armazenamento falso.
+- [x] Adicionar `flutter_secure_storage` e gravar o token no login.
+- [x] Ao abrir o app, ler o token e validar com `GET /auth/me`. Se responder 401, apagar o token e ir para o login. (Feito: restauração otimista; o login fica na aba Perfil; falha de rede mantém o token.)
+- [x] Apagar o token no logout e quando qualquer requisição autenticada responder 401.
+- [x] Testes com um armazenamento falso.
 
 ## Tarefa 10 — Retenção e privacidade (Regra 08 · YUME-03)
 
