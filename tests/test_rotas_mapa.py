@@ -76,3 +76,38 @@ def openapi_deve_documentar_respostas_200_401_e_422_das_regioes():
     assert {"HTTPBearer": []} in operacao["security"]
     raio = next(p for p in operacao["parameters"] if p["name"] == "raio")
     assert (raio["schema"]["default"], raio["schema"]["maximum"]) == (3000, 10000)
+
+
+ROTA_FEEDBACK = "/api/v1/mapa/regioes/distrito-sp-1/feedbacks"
+FEEDBACK_VALIDO = {"categoria": "ILUMINACAO", "texto": "Rua escura"}
+
+
+def _feedback_proibido(*_):
+    raise AssertionError("A rota gravou um feedback com corpo inválido.")
+
+
+@pytest.mark.parametrize("cabecalhos", [{}, {"Authorization": "Bearer nao-e-jwt"}])
+def enviar_feedback_sem_token_valido_deve_responder_401_sem_tocar_no_banco(client, cabecalhos):
+    resposta = client.post(ROTA_FEEDBACK, json=FEEDBACK_VALIDO, headers=cabecalhos)
+    assert resposta.status_code == 401
+    assert resposta.headers["www-authenticate"] == "Bearer"
+
+
+@pytest.mark.parametrize(
+    "corpo",
+    [{}, {"categoria": "BARULHO"}, {"categoria": "OUTRO"}, {"categoria": "ASSALTO", "texto": "a" * 501}],
+)
+def enviar_feedback_com_corpo_invalido_deve_responder_422_sem_gravar(client, corpo, monkeypatch):
+    app.dependency_overrides[obter_sessao] = lambda: None
+    monkeypatch.setattr(servico, "criar_feedback", _feedback_proibido, raising=False)
+
+    assert client.post(ROTA_FEEDBACK, json=corpo, headers=_token()).status_code == 422
+
+
+def openapi_deve_documentar_respostas_201_401_404_e_422_do_feedback():
+    operacao = app.openapi()["paths"]["/api/v1/mapa/regioes/{regiao_id}/feedbacks"]["post"]
+    assert {"201", "401", "404", "422"} <= set(operacao["responses"])
+    assert operacao["responses"]["201"]["content"]["application/json"]["schema"]["$ref"].endswith(
+        "/FeedbackCriadoResposta"
+    )
+    assert {"HTTPBearer": []} in operacao["security"]

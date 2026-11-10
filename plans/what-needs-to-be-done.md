@@ -212,9 +212,9 @@ Dados úteis das ocorrências:
 - Sem fotos.
 
 **Backend**
-- [ ] Migração `feedbacks_comunidade`, com FKs para `usuarios` e `regioes_seguranca`, e um `CHECK` com as categorias acima.
-- [ ] `POST /api/v1/mapa/regioes/{id}/feedbacks`, autenticada, sempre com status `PENDENTE`. Texto acima de 500 caracteres responde 422.
-- [ ] Testes provando que o feedback não altera o score nem aparece em `/mapa/regioes`.
+- [x] Migração `feedbacks_comunidade`, com FKs para `usuarios` e `regioes_seguranca`, e um `CHECK` com as categorias acima.
+- [x] `POST /api/v1/mapa/regioes/{id}/feedbacks`, autenticada, sempre com status `PENDENTE`. Texto acima de 500 caracteres responde 422.
+- [x] Testes provando que o feedback não altera o score nem aparece em `/mapa/regioes`.
 
 **Frontend**
 - [ ] Transformar a tela "Registro de ocorrência" em feedback vinculado a uma região selecionada no mapa.

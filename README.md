@@ -1,6 +1,6 @@
 # Click S.O.S — Backend
 
-Base técnica inicial do backend do Click S.O.S. Neste estágio existem o cadastro e login com JWT em `/api/v1/auth` (AUTH-01), a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01), o consentimento do contato por link de uso único, a criação do alerta em `POST /api/v1/sos/alertas` (SOS-03), que grava o alerta como `PENDENTE`, e a consulta do status em `GET /api/v1/sos/alertas/{id}`. As tabelas do mapa (`regioes_seguranca` e o schema `interno` com as ocorrências da SSP) já existem, e `GET /api/v1/mapa/regioes` devolve os distritos próximos com score e cor (veja "Mapa de risco"). Depois da resposta, o alerta é enviado pelo WhatsApp aos contatos aptos, pela Evolution API (SOS-05 e SOS-06).
+Base técnica inicial do backend do Click S.O.S. Neste estágio existem o cadastro e login com JWT em `/api/v1/auth` (AUTH-01), a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01), o consentimento do contato por link de uso único, a criação do alerta em `POST /api/v1/sos/alertas` (SOS-03), que grava o alerta como `PENDENTE`, e a consulta do status em `GET /api/v1/sos/alertas/{id}`. As tabelas do mapa (`regioes_seguranca` e o schema `interno` com as ocorrências da SSP) já existem, `GET /api/v1/mapa/regioes` devolve os distritos próximos com score e cor, e `POST /api/v1/mapa/regioes/{id}/feedbacks` recebe o feedback da comunidade (veja "Mapa de risco"). Depois da resposta, o alerta é enviado pelo WhatsApp aos contatos aptos, pela Evolution API (SOS-05 e SOS-06).
 
 ## Requisitos
 
@@ -157,6 +157,8 @@ O score vai de 0 a 100: soma dos pesos das ocorrências dos 6 meses anteriores �
 
 O app consulta `GET /api/v1/mapa/regioes?latitude=...&longitude=...&raio=3000` com o token (MAP-06/07). A resposta lista no máximo 50 distritos com a borda a até `raio` metros do ponto, do mais próximo ao mais distante, cada um com `id` público, `nome`, `centroide`, `score`, `cor_hex` e `raio_metros`. O raio padrão é 3000 m e o máximo, 10000 m; fora disso, `422`.
 
+Para relatar algo sobre um distrito, o app envia `POST /api/v1/mapa/regioes/{id}/feedbacks` com o token e o corpo `{"categoria": "ILUMINACAO", "texto": "..."}` (MAP-04), em que `{id}` é o `id` público devolvido por `/mapa/regioes`. As categorias são `ILUMINACAO`, `ASSALTO`, `ASSEDIO`, `MOVIMENTO`, `POLICIAMENTO` e `OUTRO`. O texto é opcional, tem até 500 caracteres e é obrigatório em `OUTRO`. O feedback é gravado como `PENDENTE` em `feedbacks_comunidade` e responde `201`; distrito desconhecido responde `404`. O feedback não altera o score, a cor nem a resposta de `/mapa/regioes` (Regra 05).
+
 ## Testes e pre-commit
 
 ```bash
@@ -195,7 +197,7 @@ alembic upgrade head --sql  # mostra o SQL sem executar
 alembic check               # confirma que os modelos em src/app/db/models.py batem com as migrações
 ```
 
-As revisões `0006` e `0007` (schema `interno` e `regioes_seguranca`) foram aplicadas no Neon antes de estarem no Git e depois reescritas a partir do schema real. No Neon, `alembic upgrade head` parte da `0007`; não rode `downgrade` lá.
+As revisões `0006` e `0007` (schema `interno` e `regioes_seguranca`) foram aplicadas no Neon antes de estarem no Git e depois reescritas a partir do schema real. No Neon, `alembic upgrade head` parte da `0007` e aplica a `0008` e a `0009` (`feedbacks_comunidade`); não rode `downgrade` lá.
 
 ## Variáveis de ambiente
 
