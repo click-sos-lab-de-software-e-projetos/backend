@@ -232,11 +232,11 @@ Dados úteis das ocorrências:
 ## Tarefa 8 — Edição e remoção de contatos
 
 **Backend**
-- [ ] Nada novo: `PATCH` e `DELETE /contatos/{id}` já existem.
+- [x] Nada novo: `PATCH` e `DELETE /contatos/{id}` já existem.
 
 **Frontend**
-- [ ] `ContactsController.remove` existe, mas não há botão na interface. Adicionar editar e remover, com confirmação.
-- [ ] Ao editar o telefone, avisar que o consentimento será pedido de novo (Tarefa 1).
+- [x] `ContactsController.remove` existe, mas não há botão na interface. Adicionar editar e remover, com confirmação.
+- [x] Ao editar o telefone, avisar que o consentimento será pedido de novo (Tarefa 1).
 
 ## Tarefa 9 — Sessão segura (Regra 09 · SOSM-01)
 
