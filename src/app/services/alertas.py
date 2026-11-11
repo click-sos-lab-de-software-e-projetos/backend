@@ -36,6 +36,17 @@ def obter_alerta(sessao: Session, usuario_id: UUID, alerta_id: UUID) -> AlertaSo
     return alerta
 
 
+def listar_alertas(sessao: Session, usuario_id: UUID, limite: int) -> list[AlertaSos]:
+    return list(
+        sessao.scalars(
+            select(AlertaSos)
+            .where(AlertaSos.usuario_id == usuario_id)
+            .order_by(AlertaSos.criado_em.desc(), AlertaSos.id)
+            .limit(limite)
+        )
+    )
+
+
 def criar_alerta(sessao: Session, usuario_id: UUID, dados: CriarAlertaRequisicao) -> AlertaSos:
     usuario = sessao.get(Usuario, usuario_id)
     if usuario is None:

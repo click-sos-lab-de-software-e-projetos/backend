@@ -348,3 +348,41 @@ def consultar_alerta_de_outra_pessoa_deve_responder_404_igual_ao_inexistente(
 
 def consultar_alerta_com_id_invalido_deve_responder_422(client, ana):
     assert client.get(f"{ROTA}/nao-e-uuid", headers=_token(ana)).status_code == 422
+
+
+# --- lista dos últimos alertas ------------------------------------------------
+
+
+def listar_alertas_deve_trazer_so_os_da_pessoa_do_mais_recente_ao_mais_antigo(
+    client, banco_migrado, ana
+):
+    bia = _usuario(banco_migrado, APTO)
+    antigo = _alerta_de(banco_migrado, ana, criado_em=datetime(2026, 1, 1, tzinfo=UTC))
+    recente = _alerta_de(banco_migrado, ana, criado_em=datetime(2026, 2, 1, tzinfo=UTC))
+    _alerta_de(banco_migrado, bia)
+
+    resposta = client.get(ROTA, headers=_token(ana))
+
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert [a["id"] for a in corpo] == [str(recente), str(antigo)]
+    assert set(corpo[0]) == {"id", "status_envio", "tentativas", "criado_em"}
+
+
+def listar_alertas_deve_respeitar_o_limite(client, banco_migrado, ana):
+    for dia in (1, 2, 3):
+        _alerta_de(banco_migrado, ana, criado_em=datetime(2026, 1, dia, tzinfo=UTC))
+
+    corpo = client.get(ROTA, params={"limite": 2}, headers=_token(ana)).json()
+
+    assert [datetime.fromisoformat(a["criado_em"]).day for a in corpo] == [3, 2]
+
+
+@pytest.mark.parametrize("limite", [0, 51])
+def listar_alertas_com_limite_fora_do_intervalo_deve_responder_422(client, ana, limite):
+    resposta = client.get(ROTA, params={"limite": limite}, headers=_token(ana))
+    assert resposta.status_code == 422
+
+
+def listar_alertas_sem_nenhum_deve_devolver_lista_vazia(client, ana):
+    assert client.get(ROTA, headers=_token(ana)).json() == []

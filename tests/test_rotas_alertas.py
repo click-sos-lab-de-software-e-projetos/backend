@@ -66,3 +66,17 @@ def openapi_deve_documentar_respostas_200_401_404_e_422_da_consulta():
         "/AlertaStatusResposta"
     )
     assert {"HTTPBearer": []} in operacao["security"]
+
+
+@pytest.mark.parametrize("cabecalhos", [{}, {"Authorization": "Bearer nao-e-jwt"}])
+def listar_alertas_sem_token_valido_deve_responder_401_sem_tocar_no_banco(client, cabecalhos):
+    resposta = client.get(ROTA, headers=cabecalhos)
+    assert resposta.status_code == 401
+
+
+def openapi_deve_documentar_a_lista_de_alertas():
+    operacao = app.openapi()["paths"][ROTA]["get"]
+    assert {"200", "401", "422"} <= set(operacao["responses"])
+    esquema = operacao["responses"]["200"]["content"]["application/json"]["schema"]
+    assert esquema["items"]["$ref"].endswith("/AlertaStatusResposta")
+    assert {"HTTPBearer": []} in operacao["security"]

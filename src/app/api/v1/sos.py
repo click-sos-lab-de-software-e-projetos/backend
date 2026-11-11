@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import obter_usuario_id
@@ -24,6 +24,8 @@ MSG_SEM_CONTATOS = (
     "Cadastre um contato e confirme o consentimento antes de acionar o S.O.S."
 )
 MSG_ALERTA_NAO_ENCONTRADO = "Alerta não encontrado."
+LIMITE_PADRAO_LISTA = 20
+LIMITE_MAXIMO_LISTA = 50
 
 router = APIRouter(prefix="/api/v1/sos", tags=["sos"])
 
@@ -69,6 +71,25 @@ def criar_alerta(
     # Roda depois que a resposta sai: um WhatsApp lento não atrasa o app (SOS-06).
     tarefas.add_task(despacho, alerta.id)
     return alerta
+
+
+@router.get(
+    "/alertas",
+    response_model=list[AlertaStatusResposta],
+    summary="Listar os últimos alertas",
+    description=(
+        "Últimos alertas da pessoa dona do token, do mais recente ao mais antigo, "
+        f"no máximo `limite` (padrão {LIMITE_PADRAO_LISTA}, até {LIMITE_MAXIMO_LISTA}). "
+        "Não devolve coordenadas, mensagem nem telefones."
+    ),
+    responses={401: {"description": "Token ausente, inválido ou expirado."}},
+)
+def listar_alertas(
+    usuario_id: UsuarioId,
+    sessao: Sessao,
+    limite: Annotated[int, Query(ge=1, le=LIMITE_MAXIMO_LISTA)] = LIMITE_PADRAO_LISTA,
+):
+    return servico.listar_alertas(sessao, usuario_id, limite)
 
 
 @router.get(
