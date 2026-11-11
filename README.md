@@ -32,6 +32,27 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 Com a aplicação iniciada, consulte `http://localhost:8000/health`. A documentação automática está em `http://localhost:8000/docs` (Swagger) e `http://localhost:8000/redoc`.
 
+## Rodar o projeto inteiro (`scripts/run.sh`)
+
+Com os repositórios `frontend` e `tela-consentimento` ao lado deste (`../frontend`, `../tela-consentimento`) e o `.env` preenchido a partir do `.env.example`:
+
+```bash
+scripts/run.sh local                          # PostGIS e Evolution no Docker + backend + tela + app no Chrome
+scripts/run.sh local --device emulator-5554   # app no emulador Android (localhost vira 10.0.2.2)
+scripts/run.sh local --sem-app                # só banco, Evolution, backend e tela-consentimento
+scripts/run.sh dev                            # backend local no branch "dev" do Neon (sem Docker)
+scripts/run.sh shell local                    # shell com as variáveis do perfil (pytest, scripts/...)
+scripts/run.sh verificar dev                  # mostra o que o perfil usaria, sem segredos
+scripts/run.sh parar                          # para os containers do perfil local
+```
+
+- O `.env` guarda cada variável com sufixo `_LOCAL`, `_DEV` e `_PROD`; o script exporta a do perfil com o nome sem sufixo. Valores com `&` precisam de aspas.
+- `local` usa o Colima se o Docker estiver parado. Os containers (`clicksos-db`, `clicksos-evolution`, `clicksos-evolution-db`) guardam os dados em volumes e continuam no ar depois do Ctrl+C; pare com `scripts/run.sh parar`. No primeiro uso, leia o QR code da Evolution em `http://localhost:8080/manager`.
+- O banco local começa sem distritos, então o mapa fica vazio até rodar `scripts/carregar_mapa.py` (veja "Mapa de risco").
+- `dev` se recusa a subir se `DATABASE_URL_DEV` estiver vazia ou apontar para o mesmo host do `DATABASE_URL_PROD`. Crie o branch `dev` no console do Neon (Branches → New branch) e cole a connection string.
+- Comandos contra produção, como `scripts/recalcular_mapa.py --gravar`, rodam dentro de `scripts/run.sh shell prod`.
+- O script é bash: no Windows, use o Dev Container.
+
 ## Testar as rotas privadas no Swagger
 
 As rotas de `/api/v1/contatos` e `/api/v1/sos/alertas` exigem um banco migrado e um JWT, obtido pelo cadastro e login de `/api/v1/auth` (AUTH-01). O token vale 24 horas (ajuste com `JWT_EXPIRACAO_MIN`) e não é renovado: ao expirar, faça login de novo. `GET /api/v1/auth/me` devolve o perfil da pessoa dona do token. `PATCH /api/v1/auth/me` altera `nome_completo`, `telefone_pessoal` e/ou `mensagem_sos` (só os campos enviados; o e-mail não é editável). `mensagem_sos` (até 255 caracteres) é a mensagem de S.O.S. configurada em Ajustes no app: um `POST /api/v1/sos/alertas` sem `mensagem` usa a salva e, sem ela, a padrão da Regra 02; `""` volta para a padrão. `POST /api/v1/auth/me/senha` com `{"senha_atual", "senha_nova"}` troca a senha e responde `204`; senha atual errada responde `400`. Tokens emitidos antes da troca continuam válidos até expirar. `DELETE /api/v1/auth/me` com `{"senha"}` exclui a conta (veja "Retenção e privacidade").
@@ -60,20 +81,20 @@ Para o app web (Flutter no Chrome) chamar a API, libere a origem com `CORS_ORIGI
 2. **Preencha o `.env`** (de dentro do Dev Container, troque `localhost` por `host.docker.internal`):
 
    ```dotenv
-   DATABASE_URL=postgresql+psycopg://dev:dev@localhost:5432/click_sos
+   DATABASE_URL_LOCAL=postgresql+psycopg://dev:dev@localhost:5432/click_sos
    JWT_SECRET_KEY=<gere com: python -c "import secrets; print(secrets.token_urlsafe(32))">
    ```
 
-3. **Carregue o `.env` no terminal.** O Alembic, o pytest e o script leem só variáveis de ambiente, não o arquivo:
+3. **Carregue o `.env` no terminal.** O Alembic, o pytest e o script leem só variáveis de ambiente, não o arquivo; os comandos abaixo exportam o perfil local sem o sufixo `_LOCAL`:
 
    ```powershell
    # Windows (PowerShell)
-   Get-Content .env | Where-Object { $_ -match '^[A-Z_]+=.' } | ForEach-Object { $n, $v = $_ -split '=', 2; Set-Item "env:$n" $v }
+   Get-Content .env | Where-Object { $_ -match '^[A-Z_]+=.' } | ForEach-Object { $n, $v = $_ -split '=', 2; Set-Item "env:$($n -replace '_LOCAL$', '')" $v.Trim("'`"") }
    ```
 
    ```bash
    # Linux/macOS/Dev Container
-   set -a; source .env; set +a
+   scripts/run.sh shell local
    ```
 
 4. **Migre e suba a API:**
@@ -96,7 +117,7 @@ Comportamentos esperados: e-mail já cadastrado responde `409`; senha errada ou 
      "UPDATE contatos_emergencia SET consentido_em = now() WHERE id = '<id-do-contato>'"
    ```
 
-   Sem isso, `POST /api/v1/sos/alertas` responde `422`. Com isso, responde `201` com o alerta `PENDENTE`; logo depois o worker envia a mensagem pelo WhatsApp a cada contato apto (veja "Envio por WhatsApp"). Sem as variáveis da Evolution, o alerta vira `ERRO`. Para acompanhar o envio, `GET /api/v1/sos/alertas/{id}` (com o mesmo token) devolve `id`, `status_envio`, `tentativas` e `criado_em`; alerta de outra pessoa responde `404`. Use coordenadas sem significado também no banco local.
+   Sem isso, `POST /api/v1/sos/alertas` responde `422`. Com isso, responde `201` com o alerta `PENDENTE`; logo depois o worker envia a mensagem pelo WhatsApp a cada contato apto (veja "Envio por WhatsApp"). Sem as variáveis da Evolution, o alerta vira `ERRO`. Para acompanhar o envio, `GET /api/v1/sos/alertas/{id}` (com o mesmo token) devolve `id`, `status_envio`, `tentativas` e `criado_em`; alerta de outra pessoa responde `404`. `GET /api/v1/sos/alertas?limite=20` lista os últimos alertas da pessoa (mesmos campos, do mais recente ao mais antigo, `limite` de 1 a 50). Use coordenadas sem significado também no banco local.
 
 ## Envio por WhatsApp (Evolution API v2)
 
@@ -116,7 +137,7 @@ podman run -d --name evolution-api --network evolution -p 8080:8080 \
 
 (Com Docker, troque `podman` por `docker`.) Depois:
 
-1. No `.env`: `EVOLUTION_API_URL=http://localhost:8080`, `EVOLUTION_API_KEY=<a mesma chave>` e `EVOLUTION_INSTANCE=click-sos-dev`. Carregue-o com `set -a; source .env; set +a`.
+1. No `.env`: `EVOLUTION_API_URL_LOCAL=http://localhost:8080`, `EVOLUTION_API_KEY_LOCAL=<a mesma chave>` e `EVOLUTION_INSTANCE_LOCAL=click-sos-dev`. Carregue-o com `scripts/run.sh shell local` (ou deixe o `scripts/run.sh local` subir a Evolution por você).
 2. Crie a instância:
    ```bash
    curl -X POST "$EVOLUTION_API_URL/instance/create" -H "apikey: $EVOLUTION_API_KEY" \
@@ -218,6 +239,8 @@ O arquivo `.env` é local e não deve ser versionado. Copie o exemplo antes de c
 cp .env.example .env
 ```
 
+O arquivo é dividido em perfis (`_LOCAL`, `_DEV`, `_PROD`) e é lido pelo `scripts/run.sh` (veja "Rodar o projeto inteiro"). Para comandos avulsos, use `scripts/run.sh shell local` em vez de `source .env`.
+
 Quando a URL segura for fornecida, defina `NEON_ENV_URL` e execute:
 
 ```bash
@@ -236,6 +259,8 @@ O `render.yaml` descreve o web service no plano gratuito. No Render, crie um **B
 - `EVOLUTION_API_URL`, `EVOLUTION_API_KEY` e `EVOLUTION_INSTANCE`: quando o envio por WhatsApp existir.
 
 `JWT_SECRET_KEY` é gerada pelo Render. Cada deploy roda `alembic upgrade head` antes de subir o `uvicorn`. O serviço gratuito dorme depois de uns 15 minutos sem requisições; veja o roteiro da apresentação na Tarefa 11 de `plans/what-needs-to-be-done.md`.
+
+O passo a passo completo (Neon, Evolution API, backend, página de consentimento e build do app) está em [`docs/deploy-render.md`](docs/deploy-render.md).
 
 ## Verificação do scaffold
 
