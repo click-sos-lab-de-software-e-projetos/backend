@@ -122,7 +122,7 @@ O cliente do SOS-05 deve chamar `POST {EVOLUTION_API_URL}/message/sendText/{EVOL
   - Devolve `status_envio`, `tentativas` e `criado_em`.
   - Alerta de outra pessoa retorna 404.
   - Não devolve coordenadas nem telefones.
-- [ ] Opcional: `GET /api/v1/sos/alertas` com os últimos alertas da pessoa.
+- [x] Opcional: `GET /api/v1/sos/alertas` com os últimos alertas da pessoa (do mais recente ao mais antigo; `limite` padrão 20, máximo 50).
 
 **Frontend**
 - [x] Ler o `id` da resposta do `POST /sos/alertas`.
@@ -273,7 +273,7 @@ Dados úteis das ocorrências:
 
 **Backend**
 - [x] Workflow de CI: `ruff` (E, F, I) e `pytest` com um serviço PostGIS; os 291 testes rodam, incluindo integração.
-- [ ] Atualizar `docs/index.html` com o status de cada ticket, incluindo `/me` e CORS.
+- [x] Atualizar `docs/index.html` com o status de cada ticket, incluindo `/me` e CORS.
 - [ ] **Deploy no Render** (decidido em 09/11). O `render.yaml` já está pronto; falta criar o Blueprint na conta e preencher os segredos:
   - web service com `uvicorn`;
   - `DATABASE_URL` do Neon, `JWT_SECRET_KEY` e as variáveis da Evolution API configuradas como segredos no Render;
@@ -292,7 +292,7 @@ Dados úteis das ocorrências:
 
 **Frontend**
 - [x] CI verde: `lib/screens/` (mapa do Lucas, 28/10) foi formatada e excluída do analyzer, porque importa arquivos da estrutura antiga. Fica como referência para a Tarefa 5.
-- [ ] `docs/mobile-epic.html` descreve Kotlin, Compose e Retrofit, mas o app é Flutter. Atualizar o épico.
+- [x] `docs/mobile-epic.html` descreve Kotlin, Compose e Retrofit, mas o app é Flutter. Atualizar o épico.
 - [ ] SOSM-06 e MAPM-05:
   - acessibilidade: contraste, área de toque, leitor de tela;
   - teste de integração do fluxo S.O.S e do mapa com backend falso.

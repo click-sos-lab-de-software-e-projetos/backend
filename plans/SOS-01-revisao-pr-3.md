@@ -103,12 +103,14 @@ Em `docs/index.html`:
 📦 `docs(tarefas): move rota e OpenAPI do SOS-01 para o SOS-03`
 
 ### Passo 4 — Fechar o PR
-- [ ] `pytest` e `pre-commit run --all-files` verdes.
-- [ ] `git push`. **Não** reescrever o histórico já revisado: os commits novos vão por cima de `12de97f`.
-- [ ] Título do PR: tirar os três espaços antes de `feat(` (hoje está `"   feat(sos): ..."`).
-- [ ] Descrição do PR: trocar "Pontos para decisão" pelas decisões tomadas e listar R1–R8 com os commits de cada um.
-- [ ] Responder ao fio do R8 com o link do commit de documentação.
-- [ ] Pedir nova revisão.
+> Concluído: o PR #3 foi mergeado em 22/10/2026.
+
+- [x] `pytest` e `pre-commit run --all-files` verdes.
+- [x] `git push`. **Não** reescrever o histórico já revisado: os commits novos vão por cima de `12de97f`.
+- [x] Título do PR: tirar os três espaços antes de `feat(` (hoje está `"   feat(sos): ..."`).
+- [x] Descrição do PR: trocar "Pontos para decisão" pelas decisões tomadas e listar R1–R8 com os commits de cada um.
+- [x] Responder ao fio do R8 com o link do commit de documentação.
+- [x] Pedir nova revisão.
 
 ## 6. Caminho C — se a Yume preferir rota + persistência juntas
 1. Fechar o PR #3 com um comentário apontando para o SOS-03. **Não apague a branch.**

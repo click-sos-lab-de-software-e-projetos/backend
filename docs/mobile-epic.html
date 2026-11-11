@@ -9,8 +9,9 @@
   <body>
     <header class="hero">
       <p class="eyebrow">CLICK S.O.S · MOBILE</p>
-      <h1>Épicos do<br />aplicativo Android.</h1>
-      <p class="intro">Duas entregas funcionais do MVP: o mapa de risco agregado e o fluxo S.O.S integrado ao backend. O aplicativo usa Kotlin, Jetpack Compose, Google Maps, localização e os contratos <code>/api/v1</code>.</p>
+      <h1>Épicos do<br />aplicativo Flutter.</h1>
+      <p class="intro">Duas entregas funcionais do MVP: o mapa de risco agregado e o fluxo S.O.S integrado ao backend. O aplicativo é feito em Flutter (repositório <code>frontend</code>) e usa <code>google_maps_flutter</code>, <code>geolocator</code>, <code>dio</code>, <code>flutter_secure_storage</code>, <code>url_launcher</code> e <code>provider</code>, consumindo os contratos <code>/api/v1</code>. A URL do backend vem de <code>--dart-define=API_BASE_URL</code>.</p>
+      <p class="intro"><strong>Status em 10/11/2026:</strong> SOSM-01 a SOSM-05 e MAPM-02 a MAPM-04 estão entregues. Faltam SOSM-06 e MAPM-05 (acessibilidade e testes de integração com backend fake) e, no MAPM-01, conferir as restrições da chave no Google Cloud. O nome oficial do app e o <code>applicationId</code> ainda não foram definidos (hoje <code>alerta_seguro</code>).</p>
       <nav class="document-links" aria-label="Documentações do projeto">
         <a href="index.html">Lista de tarefas backend</a>
         <a href="business-rules.html">Regras de negócio e perguntas em aberto</a>
@@ -43,15 +44,15 @@
           <div class="lane-header"><span class="avatar a">—</span><h3>Responsável pelo épico S.O.S mobile</h3></div>
 
           <article class="task">
-            <div class="task-meta"><span>SESSÃO E CONTRATO</span><span>SOSM-01</span></div>
+            <div class="task-meta"><span>SESSÃO E CONTRATO</span><span>SOSM-01 · ✅ entregue</span></div>
             <h4>Integrar autenticação e cliente HTTP</h4>
-            <p>Implementar o cliente Retrofit/OkHttp para os contratos aprovados de <code>/api/v1</code>, injetar o Bearer Token na sessão autenticada e modelar respostas de sucesso, autenticação e validação.</p>
+            <p>Implementar o cliente HTTP com <code>dio</code> (<code>lib/core/network</code>) para os contratos de <code>/api/v1</code>, injetar o Bearer Token por interceptor e modelar respostas de sucesso, autenticação e validação. Guardar o token com <code>flutter_secure_storage</code> e validá-lo com <code>GET /api/v1/auth/me</code> ao abrir o app.</p>
             <p><strong>Backend:</strong> obter o token em <code>POST /api/v1/auth/login</code> (AUTH-01, Regra 09); consumir somente URLs por ambiente e contratos publicados; não registrar token, corpo de alerta ou coordenadas em logs.</p>
-            <p class="done"><b>Pronto quando:</b> testes com servidor fake validarem cabeçalho Bearer, erros 401/422 e remoção da sessão ao encerrar login.</p>
+            <p class="done"><b>Pronto quando:</b> testes com servidor fake validarem cabeçalho Bearer, erros 401/422 e remoção da sessão no logout e em qualquer resposta 401.</p>
           </article>
 
           <article class="task">
-            <div class="task-meta"><span>CONTATOS</span><span>SOSM-02</span></div>
+            <div class="task-meta"><span>CONTATOS</span><span>SOSM-02 · ✅ entregue</span></div>
             <h4>Gerir contatos de emergência no aplicativo</h4>
             <p>Criar telas para listar, cadastrar, editar e remover contatos conforme o contrato backend. Limitar a três contatos ativos e informar que só entram no envio após consentimento confirmado.</p>
             <p><strong>Backend:</strong> consumir <code>/api/v1/contatos</code> (CONT-01, Regra 03) e refletir os estados e validações retornados; não manter uma fonte de verdade local independente.</p>
@@ -59,33 +60,33 @@
           </article>
 
           <article class="task">
-            <div class="task-meta"><span>LOCALIZAÇÃO</span><span>SOSM-03</span></div>
+            <div class="task-meta"><span>LOCALIZAÇÃO</span><span>SOSM-03 · ✅ entregue</span></div>
             <h4>Solicitar consentimento e capturar posição</h4>
-            <p>Explicar por que a localização é necessária, solicitar a permissão somente no fluxo S.O.S e obter latitude e longitude pelo Fused Location Provider. Tratar permissão negada, serviço desativado e posição indisponível.</p>
+            <p>Explicar por que a localização é necessária, solicitar a permissão somente no fluxo S.O.S e obter latitude e longitude com <code>geolocator</code> (no Android, ele usa o Fused Location Provider). Tratar permissão negada, serviço desativado e posição indisponível.</p>
             <p><strong>Privacidade:</strong> não persistir histórico de localização no dispositivo e mostrar o aviso de privacidade aprovado antes do envio.</p>
             <p class="done"><b>Pronto quando:</b> testes cobrirem os estados de permissão, erro e coordenadas simuladas sem usar a localização de teste como dado real.</p>
           </article>
 
           <article class="task">
-            <div class="task-meta"><span>ACIONAMENTO</span><span>SOSM-04</span></div>
+            <div class="task-meta"><span>ACIONAMENTO</span><span>SOSM-04 · ✅ entregue</span></div>
             <h4>Implementar confirmação e criação do alerta</h4>
-            <p>Construir o botão acessível, o diálogo de confirmação e o campo de mensagem livre de até 255 caracteres. Após a confirmação, enviar latitude, longitude e mensagem a <code>POST /api/v1/sos/alertas</code>.</p>
+            <p>Construir o botão acessível: um toque inicia uma contagem de 5 s para cancelar e, sem cancelamento, envia latitude e longitude a <code>POST /api/v1/sos/alertas</code>. O app não envia <code>mensagem</code>: o backend usa a mensagem de até 255 caracteres salva em Ajustes (<code>PATCH /api/v1/auth/me</code>) ou a padrão da Regra 02.</p>
             <p><strong>Backend:</strong> a resposta rápida representa a criação do alerta; o envio de WhatsApp acontece no worker backend, fora da interface.</p>
             <p class="done"><b>Pronto quando:</b> o app impedir acionamento acidental, tratar 201/401/422 e confirmar que o alerta foi registrado.</p>
           </article>
 
           <article class="task">
-            <div class="task-meta"><span>STATUS E FALLBACK</span><span>SOSM-05</span></div>
+            <div class="task-meta"><span>STATUS E FALLBACK</span><span>SOSM-05 · ✅ entregue</span></div>
             <h4>Comunicar estado do alerta e oferecer fallback</h4>
-            <p>Apresentar estados de criação e despacho conforme contrato disponível. Quando a API estiver indisponível e a regra aprovada permitir, oferecer um link <code>wa.me</code> com confirmação explícita antes de abrir o WhatsApp.</p>
+            <p>Consultar <code>GET /api/v1/sos/alertas/{id}</code> a cada 3 s até <code>ENVIADO</code> ou <code>ERRO</code> (para depois de 2 min e mostra "ainda enviando"). Quando a API estiver indisponível e a regra aprovada permitir, oferecer um link <code>wa.me</code> com confirmação explícita antes de abrir o WhatsApp.</p>
             <p><strong>Segurança:</strong> o fallback não substitui silenciosamente o backend, não expõe destinatário indevido e não dispara mensagem sem ação da pessoa usuária.</p>
             <p class="done"><b>Pronto quando:</b> testes cobrirem indisponibilidade, cancelamento, abertura do link e mensagens claras sobre o que foi ou não enviado.</p>
           </article>
 
           <article class="task">
-            <div class="task-meta"><span>ACESSIBILIDADE E INTEGRAÇÃO</span><span>SOSM-06</span></div>
+            <div class="task-meta"><span>ACESSIBILIDADE E INTEGRAÇÃO</span><span>SOSM-06 · ⏳ pendente</span></div>
             <h4>Validar fluxo S.O.S ponta a ponta</h4>
-            <p>Revisar contraste, área de toque, leitores de tela, rota de retorno e mensagens de erro. Criar testes instrumentados com backend fake para sessão, localização, confirmação, criação do alerta e fallback.</p>
+            <p>Revisar contraste, área de toque, leitores de tela, rota de retorno e mensagens de erro. Criar testes de integração (<code>integration_test</code>) com backend fake para sessão, localização, confirmação, criação do alerta e fallback.</p>
             <p><strong>Observabilidade:</strong> registrar apenas eventos técnicos mínimos, sem token, telefone, texto livre ou coordenadas precisas.</p>
             <p class="done"><b>Pronto quando:</b> o fluxo crítico puder ser demonstrado de ponta a ponta com dados de teste consentidos e sem vazamento de informações sensíveis.</p>
           </article>
@@ -101,41 +102,41 @@
           <div class="lane-header"><span class="avatar b">—</span><h3>Responsável pelo épico do mapa mobile</h3></div>
 
           <article class="task">
-            <div class="task-meta"><span>MAPS SDK</span><span>MAPM-01</span></div>
+            <div class="task-meta"><span>MAPS SDK</span><span>MAPM-01 · ⚠️ falta restringir a chave</span></div>
             <h4>Configurar Google Maps de forma segura</h4>
-            <p>Adicionar o Maps Compose/SDK, carregar a chave somente da configuração local ou do ambiente permitido e documentar seu fornecimento sem versionar credenciais.</p>
+            <p>Adicionar <code>google_maps_flutter</code> e carregar a chave somente da configuração local (<code>MAPS_API_KEY</code> em <code>android/local.properties</code> e no <code>Info.plist</code> do iOS), documentando o fornecimento no README do frontend sem versionar credenciais.</p>
             <p><strong>Segurança:</strong> restringir a chave no provedor e nunca incluí-la em código, captura de tela, log ou repositório.</p>
             <p class="done"><b>Pronto quando:</b> o mapa de teste abrir em ambiente autorizado e o build de CI não exigir segredo embutido.</p>
           </article>
 
           <article class="task">
-            <div class="task-meta"><span>REGIÕES AGREGADAS</span><span>MAPM-02</span></div>
+            <div class="task-meta"><span>REGIÕES AGREGADAS</span><span>MAPM-02 · ✅ entregue</span></div>
             <h4>Consultar e renderizar regiões do backend</h4>
             <p>Consumir <code>GET /api/v1/mapa/regioes</code> e renderizar somente ID público, nome, centroide, score, cor e raio. Criar estados de carregamento, vazio e falha.</p>
-            <p><strong>Privacidade:</strong> o app não solicita nem desenha geometria completa, origem Excel, feedback pendente, alertas ou localização de outras pessoas.</p>
+            <p><strong>Privacidade:</strong> o app não solicita nem desenha geometria completa, origem bruta da SSP, feedback pendente, alertas ou localização de outras pessoas.</p>
             <p class="done"><b>Pronto quando:</b> testes de serialização rejeitarem campos bloqueados e o mapa desenhar corretamente dados fake agregados.</p>
           </article>
 
           <article class="task">
-            <div class="task-meta"><span>EXPLORAÇÃO</span><span>MAPM-03</span></div>
+            <div class="task-meta"><span>EXPLORAÇÃO</span><span>MAPM-03 · ✅ entregue</span></div>
             <h4>Adicionar filtros e interação do mapa</h4>
-            <p>Permitir consulta por área visível ou posição consentida, respeitando os limites de raio e paginação definidos pelo backend. Exibir detalhes da região sem inferir risco individual.</p>
+            <p>Consultar regiões num raio de 10 km (máximo do backend, até 50 regiões) em torno da posição consentida ou, sem permissão, da Praça da Sé. Tocar num círculo mostra nome, score e faixa. Exibir detalhes da região sem inferir risco individual.</p>
             <p><strong>Localização:</strong> a centralização na posição atual é opcional e só ocorre após consentimento; o mapa continua utilizável sem permissão.</p>
             <p class="done"><b>Pronto quando:</b> filtros inválidos, ausência de permissão e respostas sem região forem tratados sem bloquear a navegação.</p>
           </article>
 
           <article class="task">
-            <div class="task-meta"><span>FEEDBACK COMUNITÁRIO</span><span>MAPM-04</span></div>
+            <div class="task-meta"><span>FEEDBACK COMUNITÁRIO</span><span>MAPM-04 · ✅ entregue</span></div>
             <h4>Enviar feedback vinculado a uma região</h4>
-            <p>Criar formulário autenticado com as categorias e limites aprovados e enviar o feedback para a região selecionada. Explicar que o envio fica pendente e não altera o mapa no MVP.</p>
+            <p>Criar formulário autenticado com as 6 categorias aprovadas e texto de até 500 caracteres (sem fotos), aberto pelo cartão do distrito, e enviar o feedback para a região selecionada. Explicar que o envio fica pendente e não altera o mapa no MVP.</p>
             <p><strong>Backend:</strong> tratar respostas de validação e autorização; não alterar localmente score, cor ou raio após enviar feedback.</p>
             <p class="done"><b>Pronto quando:</b> testes verificarem o envio válido, os erros de validação e a imutabilidade visual do score.</p>
           </article>
 
           <article class="task">
-            <div class="task-meta"><span>QUALIDADE E PRIVACIDADE</span><span>MAPM-05</span></div>
+            <div class="task-meta"><span>QUALIDADE E PRIVACIDADE</span><span>MAPM-05 · ⏳ pendente</span></div>
             <h4>Testar o mapa e revisar proteção de dados</h4>
-            <p>Criar testes de UI e integração com respostas fake para zoom, regiões, falhas e feedback. Revisar acessibilidade, contraste das cores e mensagens para pessoas que não possam usar o mapa visualmente.</p>
+            <p>Criar testes de widget e de integração com respostas fake para zoom, regiões, falhas e feedback. Revisar acessibilidade, contraste das cores e mensagens para pessoas que não possam usar o mapa visualmente.</p>
             <p><strong>Observabilidade:</strong> não enviar coordenada exata, identificadores pessoais ou conteúdo de feedback para ferramentas de telemetria sem a política aprovada.</p>
             <p class="done"><b>Pronto quando:</b> a demonstração validar consumo do backend e a resposta do app não revelar dados além do contrato público.</p>
           </article>

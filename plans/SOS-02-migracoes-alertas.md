@@ -240,15 +240,17 @@ tests/
 
 ## 6. Fechamento
 
+> Concluído: o PR #4 foi mergeado em 22/10/2026.
+
 1. **Documentação**
    - `.env.example`: adicionar `TEST_DATABASE_URL=` (sem valor).
    - `README.md`: seção "Testes de integração" (subir o PostGIS, `pytest -m integracao`, `alembic upgrade head`).
    - `docs/project-structure.md`: atualizar `migrations/` e `db/`, que hoje dizem "será criado futuramente".
    - 📦 `docs(db): explica migrações e testes de integração`
 2. **Checklist antes do PR**
-   - [ ] `pytest`: unitários verdes, integração *pulada* sem banco (o pre-commit continua funcionando para todos).
-   - [ ] `TEST_DATABASE_URL=... pytest -m integracao`: tudo verde.
-   - [ ] `alembic upgrade head --sql`: o SQL gerado foi lido, linha a linha.
-   - [ ] `git diff origin/main --stat` sem `.env`, URL, telefone ou coordenada real.
-   - [ ] Os testes de integração rodam no CI? **Hoje não há CI no repositório.** Registrar no PR que eles só rodam localmente.
+   - [x] `pytest`: unitários verdes, integração *pulada* sem banco (o pre-commit continua funcionando para todos).
+   - [x] `TEST_DATABASE_URL=... pytest -m integracao`: tudo verde.
+   - [x] `alembic upgrade head --sql`: o SQL gerado foi lido, linha a linha.
+   - [x] `git diff origin/main --stat` sem `.env`, URL, telefone ou coordenada real.
+   - [x] Os testes de integração rodam no CI? Na época, não; hoje rodam no `.github/workflows/ci.yml` com um serviço PostGIS.
 3. **Descrição do PR:** copiar a tabela da seção 3 e marcar D4, D7 e D9 como pontos que pedem resposta da Yume.
