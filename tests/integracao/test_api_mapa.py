@@ -1,7 +1,3 @@
-import time
-from uuid import uuid4
-
-import jwt
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -15,11 +11,6 @@ SEGREDO_TESTE = "segredo-apenas-para-testes-com-32-bytes"
 ROTA = "/api/v1/mapa/regioes"
 # 0,01° ≈ 1,1 km perto do equador. Coordenadas sem significado geográfico.
 PONTO = {"latitude": 0.005, "longitude": 0.005}
-
-
-def _token() -> dict[str, str]:
-    payload = {"sub": str(uuid4()), "exp": int(time.time()) + 300}
-    return {"Authorization": f"Bearer {jwt.encode(payload, SEGREDO_TESTE, algorithm='HS256')}"}
 
 
 @pytest.fixture
@@ -53,7 +44,7 @@ def regioes_deve_devolver_o_distrito_do_ponto_primeiro_e_os_vizinhos_em_ordem(cl
     onde_estou = _distrito(banco_migrado, 0.0, 0.01)
     vizinho = _distrito(banco_migrado, 0.01, 0.02)  # borda a ~0,6 km
 
-    assert _ids(client.get(ROTA, params=PONTO, headers=_token())) == [onde_estou, vizinho, longe]
+    assert _ids(client.get(ROTA, params=PONTO)) == [onde_estou, vizinho, longe]
 
 
 def regiao_fora_do_raio_nao_deve_aparecer(client, banco_migrado):
@@ -61,8 +52,8 @@ def regiao_fora_do_raio_nao_deve_aparecer(client, banco_migrado):
     _distrito(banco_migrado, 0.03, 0.04)  # borda a ~2,8 km: dentro do padrão de 3 km
     _distrito(banco_migrado, 0.04, 0.05)  # borda a ~3,9 km: fora do padrão
 
-    assert len(_ids(client.get(ROTA, params=PONTO, headers=_token()))) == 2
-    assert _ids(client.get(ROTA, params={**PONTO, "raio": 1000}, headers=_token())) == [perto]
+    assert len(_ids(client.get(ROTA, params=PONTO))) == 2
+    assert _ids(client.get(ROTA, params={**PONTO, "raio": 1000})) == [perto]
 
 
 def regioes_deve_devolver_no_maximo_50(client, banco_migrado):
@@ -71,16 +62,22 @@ def regioes_deve_devolver_no_maximo_50(client, banco_migrado):
         for i in range(51):
             inserir_regiao(conexao, i * 0.0001, 0.0, (i + 1) * 0.0001, 0.01, fonte_geografica_id=fonte)
 
-    assert len(_ids(client.get(ROTA, params=PONTO, headers=_token()))) == 50
+    assert len(_ids(client.get(ROTA, params=PONTO))) == 50
 
 
 def regioes_deve_expor_so_os_campos_publicos(client, banco_migrado):
     _distrito(
-        banco_migrado, 0.0, 0.01, id_publico="distrito-sp-1", nome="Distrito Ficticio", score_final=72,
-        cor_hex="#EF4444", raio_metros=640,
+        banco_migrado,
+        0.0,
+        0.01,
+        id_publico="distrito-sp-1",
+        nome="Distrito Ficticio",
+        score_final=72,
+        cor_hex="#EF4444",
+        raio_metros=640,
     )
 
-    (regiao,) = client.get(ROTA, params=PONTO, headers=_token()).json()
+    (regiao,) = client.get(ROTA, params=PONTO).json()
 
     assert regiao == {
         "id": "distrito-sp-1",
@@ -95,4 +92,4 @@ def regioes_deve_expor_so_os_campos_publicos(client, banco_migrado):
 def regioes_sem_distritos_por_perto_deve_devolver_lista_vazia(client, banco_migrado):
     _distrito(banco_migrado, 0.5, 0.6)
 
-    assert _ids(client.get(ROTA, params=PONTO, headers=_token())) == []
+    assert _ids(client.get(ROTA, params=PONTO)) == []

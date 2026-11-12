@@ -37,10 +37,14 @@ def client():
 
 
 @pytest.mark.parametrize("cabecalhos", [{}, {"Authorization": "Bearer nao-e-jwt"}])
-def consultar_regioes_sem_token_valido_deve_responder_401_sem_tocar_no_banco(client, cabecalhos):
+def consultar_regioes_sem_token_valido_deve_responder_200(client, cabecalhos, monkeypatch):
+    app.dependency_overrides[obter_sessao] = lambda: None
+    monkeypatch.setattr(servico, "listar_regioes_proximas", lambda *_: [])
+
     resposta = client.get(ROTA, params=PONTO, headers=cabecalhos)
-    assert resposta.status_code == 401
-    assert resposta.headers["www-authenticate"] == "Bearer"
+
+    assert resposta.status_code == 200
+    assert resposta.json() == []
 
 
 @pytest.mark.parametrize(
@@ -63,17 +67,18 @@ def consultar_regioes_com_parametro_invalido_deve_responder_422_sem_consultar_re
     app.dependency_overrides[obter_sessao] = lambda: None
     monkeypatch.setattr(servico, "listar_regioes_proximas", _consulta_proibida)
 
-    assert client.get(ROTA, params=parametros, headers=_token()).status_code == 422
+    assert client.get(ROTA, params=parametros).status_code == 422
 
 
-def openapi_deve_documentar_respostas_200_401_e_422_das_regioes():
+def openapi_deve_documentar_regioes_como_rota_publica_com_respostas_200_e_422():
     operacao = app.openapi()["paths"][ROTA]["get"]
     respostas = operacao["responses"]
-    assert {"200", "401", "422"} <= set(respostas)
+    assert {"200", "422"} <= set(respostas)
+    assert "401" not in respostas
     assert respostas["200"]["content"]["application/json"]["schema"]["items"]["$ref"].endswith(
         "/RegiaoResposta"
     )
-    assert {"HTTPBearer": []} in operacao["security"]
+    assert "security" not in operacao
     raio = next(p for p in operacao["parameters"] if p["name"] == "raio")
     assert (raio["schema"]["default"], raio["schema"]["maximum"]) == (3000, 10000)
 
