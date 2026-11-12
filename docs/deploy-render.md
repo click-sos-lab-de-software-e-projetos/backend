@@ -1,14 +1,14 @@
 # Deploy da demo no Render (passo a passo)
 
-Três serviços, todos no plano gratuito:
+Dois serviços no Render e a página de consentimento no GitHub Pages, todos gratuitos:
 
 | Serviço | Tipo no Render | Origem |
 |---------|----------------|--------|
 | `click-sos-backend` | Web Service (Python) | este repositório, via `render.yaml` |
 | `click-sos-evolution` | Web Service (Docker image) | `evoapicloud/evolution-api:latest` |
-| `click-sos-consentimento` | Static Site | repositório `tela-consentimento` |
+| página de consentimento | GitHub Pages (não é Render) | repositório `tela-consentimento`, branch `main`, pasta `/` |
 
-Os nomes acima viram as URLs `https://<nome>.onrender.com`. Se o Render acrescentar um sufixo
+Os nomes dos serviços do Render viram as URLs `https://<nome>.onrender.com`. Se o Render acrescentar um sufixo
 (nome já usado), use a URL que ele mostrar em todos os passos abaixo.
 
 Faça na ordem: Neon → Evolution → backend → página de consentimento → app.
@@ -66,8 +66,8 @@ A Evolution guarda a sessão do WhatsApp no Postgres dela. **Nunca** use o `neon
    | Chave | Valor |
    |-------|-------|
    | `DATABASE_URL` | URL do `neondb` (passo 1) |
-   | `CORS_ORIGIN_REGEX` | `https://click-sos-consentimento\.onrender\.com` |
-   | `CONSENTIMENTO_URL_BASE` | `https://click-sos-consentimento.onrender.com/` |
+   | `CORS_ORIGIN_REGEX` | `^https://click-sos-lab-de-software-e-projetos\.github\.io$` |
+   | `CONSENTIMENTO_URL_BASE` | `https://click-sos-lab-de-software-e-projetos.github.io/tela-consentimento/` (com a barra final) |
    | `EVOLUTION_API_URL` | `https://click-sos-evolution.onrender.com` |
    | `EVOLUTION_API_KEY` | a chave do passo 2 |
    | `EVOLUTION_INSTANCE` | `click-sos-demo` |
@@ -77,16 +77,15 @@ A Evolution guarda a sessão do WhatsApp no Postgres dela. **Nunca** use o `neon
 
 ## 4. Página de consentimento
 
-1. No repositório `tela-consentimento`, troque em `src/config.js`:
+A página fica no GitHub Pages: `https://click-sos-lab-de-software-e-projetos.github.io/tela-consentimento/`.
 
-   ```js
-   export const API_BASE_URL = "https://click-sos-backend.onrender.com";
-   ```
-
-   Faça commit e push.
-2. Render → **New** → **Static Site** → repositório `tela-consentimento`.
-   Nome `click-sos-consentimento`, **Build command** vazio, **Publish directory** `.`.
-3. Confira: abra a URL; sem `#token=...`, a página mostra a tela de link inválido.
+1. No repositório `tela-consentimento`: **Settings** → **Pages** → **Deploy from a branch** → `main`, pasta `/`.
+2. A página lê a URL da API de `env.js`, que não é versionado; sem ele, usa `http://localhost:8000`, que só
+   funciona na máquina que roda o backend. Para quem recebe o link no celular, a página precisa apontar para
+   o backend do Render (`https://click-sos-backend.onrender.com`): faça isso quando o backend estiver no ar.
+3. O link do WhatsApp é `CONSENTIMENTO_URL_BASE#token=...`; confira que `CONSENTIMENTO_URL_BASE` é a URL
+   do Pages acima, senão o link abre uma página "Not Found".
+4. Confira: abra a URL; sem `#token=...`, a página mostra a tela de link inválido.
 
 ## 5. App Flutter (build da demo)
 
