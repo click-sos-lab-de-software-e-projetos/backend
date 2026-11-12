@@ -12,7 +12,6 @@ from app.main import app
 from integracao.fabricas import (
     inserir_alerta,
     inserir_contato,
-    inserir_regiao,
     inserir_tentativa,
     inserir_usuario,
 )
@@ -107,9 +106,7 @@ def login_com_credenciais_certas_deve_emitir_jwt_aceito_nas_rotas_privadas(clien
     assert corpo["expires_in"] == 30 * 60
     payload = jwt.decode(corpo["access_token"], SEGREDO_TESTE, algorithms=["HS256"])
     assert payload["sub"] == usuario_id
-    privada = client.get(
-        "/api/v1/contatos", headers={"Authorization": f"Bearer {corpo['access_token']}"}
-    )
+    privada = client.get("/api/v1/contatos", headers={"Authorization": f"Bearer {corpo['access_token']}"})
     assert privada.status_code == 200
 
 
@@ -131,9 +128,7 @@ def login_de_usuario_sem_hash_bcrypt_deve_responder_401(client, banco_migrado):
     assert _login(client, email="legado@example.com", senha="hash-ficticio").status_code == 401
 
 
-def fluxo_de_auth_nao_deve_registrar_senha_hash_nem_token_em_logs(
-    client, banco_migrado, caplog
-):
+def fluxo_de_auth_nao_deve_registrar_senha_hash_nem_token_em_logs(client, banco_migrado, caplog):
     caplog.set_level(logging.DEBUG)
     caplog.set_level(logging.INFO, logger="sqlalchemy.engine")
 
@@ -266,10 +261,12 @@ def _dados_da_pessoa(conexao, usuario_id, status_envio="ENVIADO") -> dict:
     contato = inserir_contato(conexao, usuario_id).id
     alerta = inserir_alerta(conexao, usuario_id, mensagem="socorro", status_envio=status_envio).id
     inserir_tentativa(conexao, alerta, contato, status="SUCESSO")
-    regiao = inserir_regiao(conexao, 0.0, 0.0, 0.01, 0.01).id
     conexao.execute(
-        text("INSERT INTO feedbacks_comunidade (usuario_id, regiao_id, categoria) VALUES (:u, :r, 'ASSALTO')"),
-        {"u": usuario_id, "r": regiao},
+        text(
+            "INSERT INTO alertas_comunidade (usuario_id, categoria, localizacao) "
+            "VALUES (:u, 'ASSALTO', ST_SetSRID(ST_MakePoint(0, 0), 4326))"
+        ),
+        {"u": usuario_id},
     )
     return {"contato": contato, "alerta": alerta}
 
@@ -279,7 +276,7 @@ def _retrato(banco_migrado) -> dict:
         return {
             "usuarios": conexao.execute(text("SELECT id FROM usuarios ORDER BY id")).all(),
             "contatos": conexao.execute(text("SELECT id FROM contatos_emergencia ORDER BY id")).all(),
-            "feedbacks": conexao.execute(text("SELECT usuario_id FROM feedbacks_comunidade ORDER BY id")).all(),
+            "alertas_mapa": conexao.execute(text("SELECT usuario_id FROM alertas_comunidade ORDER BY id")).all(),
             "alertas": conexao.execute(
                 text(
                     "SELECT id, usuario_id, localizacao IS NULL AS sem_local, mensagem, "
@@ -294,7 +291,7 @@ def _retrato(banco_migrado) -> dict:
 
 @pytest.fixture
 def pessoa_com_dados(client, banco_migrado):
-    """A pessoa do cadastro com contato, alerta, tentativa e feedback, e outra pessoa com o mesmo."""
+    """A pessoa do cadastro com contato, alerta, tentativa e alerta no mapa, e outra pessoa com o mesmo."""
     usuario_id = client.post(CADASTRO, json=CORPO).json()["id"]
     cabecalhos = {"Authorization": f"Bearer {_login(client).json()['access_token']}"}
     with banco_migrado.begin() as conexao:
@@ -314,7 +311,7 @@ def excluir_conta_deve_apagar_a_pessoa_e_anonimizar_os_alertas(client, banco_mig
     retrato = _retrato(banco_migrado)
     assert [linha.id for linha in retrato["usuarios"]] == [outra]
     assert len(retrato["contatos"]) == 1
-    assert [linha.usuario_id for linha in retrato["feedbacks"]] == [outra]
+    assert [linha.usuario_id for linha in retrato["alertas_mapa"]] == [outra]
     alerta = next(linha for linha in retrato["alertas"] if linha.id == dados["alerta"])
     assert (alerta.usuario_id, alerta.sem_local, alerta.mensagem, alerta.anonimizado, alerta.status_envio) == (
         None,

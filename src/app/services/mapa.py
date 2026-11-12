@@ -1,5 +1,5 @@
 """Mapa de risco: recálculo do score (MAP-05), consulta dos distritos (MAP-06/07)
-e feedback comunitário (MAP-04).
+e alertas da comunidade no mapa.
 
 As tabelas do mapa pertencem à carga da SSP e do GeoSampa e não têm modelo
 ORM; por isso o acesso é por SQL explícito.
@@ -13,9 +13,14 @@ from uuid import UUID
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.constants import JANELA_SCORE_MESES, LIMITE_REGIOES_MAPA
+from app.constants import (
+    JANELA_SCORE_MESES,
+    LIMITE_ALERTAS_COMUNIDADE_MAPA,
+    LIMITE_REGIOES_MAPA,
+    VALIDADE_ALERTA_COMUNIDADE_HORAS,
+)
 from app.db.models import Usuario
-from app.schemas.mapa import CriarFeedbackRequisicao
+from app.schemas.mapa import CriarAlertaComunidadeRequisicao
 from app.services.score_mapa import calcular_scores, raio_equivalente_metros
 
 _JANELA = text(
@@ -102,38 +107,61 @@ def listar_regioes_proximas(sessao: Session, latitude: float, longitude: float, 
     ]
 
 
-class RegiaoNaoEncontrada(Exception):
-    pass
-
-
 class UsuarioNaoEncontrado(Exception):
     """Token válido de uma pessoa que não existe mais."""
 
 
-_REGIAO_POR_ID_PUBLICO = text("SELECT id FROM regioes_seguranca WHERE id_publico = :id_publico")
+# Não entram no score (Regra 05): só aparecem como ícones enquanto valem.
+_INSERIR_ALERTA = text(
+    "INSERT INTO alertas_comunidade (usuario_id, categoria, texto, localizacao) "
+    "VALUES (:usuario_id, :categoria, :texto, ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)) "
+    "RETURNING id, criado_em"
+)
 
-# Fica PENDENTE e fora do score (Regra 05); a moderação vem depois.
-_INSERIR_FEEDBACK = text(
-    "INSERT INTO feedbacks_comunidade (usuario_id, regiao_id, categoria, texto) "
-    "VALUES (:usuario_id, :regiao_id, :categoria, :texto) RETURNING id, status, criado_em"
+_ALERTAS_PROXIMOS = text(
+    "SELECT id, categoria, texto, ST_Y(localizacao) AS latitude, ST_X(localizacao) AS longitude, criado_em "
+    "FROM alertas_comunidade "
+    "WHERE criado_em > now() - make_interval(hours => :horas) "
+    "AND ST_DWithin(localizacao::geography, ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, :raio) "
+    "ORDER BY criado_em DESC, id "
+    "LIMIT :limite"
 )
 
 
-def criar_feedback(sessao: Session, usuario_id: UUID, id_publico: str, dados: CriarFeedbackRequisicao) -> dict:
+def criar_alerta(sessao: Session, usuario_id: UUID, dados: CriarAlertaComunidadeRequisicao) -> dict:
     if sessao.get(Usuario, usuario_id) is None:
         raise UsuarioNaoEncontrado
-    regiao_id = sessao.execute(_REGIAO_POR_ID_PUBLICO, {"id_publico": id_publico}).scalar_one_or_none()
-    if regiao_id is None:
-        raise RegiaoNaoEncontrada
     linha = sessao.execute(
-        _INSERIR_FEEDBACK,
-        {"usuario_id": usuario_id, "regiao_id": regiao_id, "categoria": dados.categoria, "texto": dados.texto},
+        _INSERIR_ALERTA,
+        {
+            "usuario_id": usuario_id,
+            "categoria": dados.categoria,
+            "texto": dados.texto,
+            "latitude": dados.latitude,
+            "longitude": dados.longitude,
+        },
     ).one()
     sessao.commit()
     return {
         "id": linha.id,
-        "regiao_id": id_publico,
         "categoria": dados.categoria,
-        "status": linha.status,
+        "texto": dados.texto,
+        "latitude": dados.latitude,
+        "longitude": dados.longitude,
         "criado_em": linha.criado_em,
     }
+
+
+def listar_alertas_proximos(sessao: Session, latitude: float, longitude: float, raio_metros: int) -> list[dict]:
+    """Alertas das últimas horas de validade, do mais novo ao mais antigo."""
+    linhas = sessao.execute(
+        _ALERTAS_PROXIMOS,
+        {
+            "latitude": latitude,
+            "longitude": longitude,
+            "raio": raio_metros,
+            "horas": VALIDADE_ALERTA_COMUNIDADE_HORAS,
+            "limite": LIMITE_ALERTAS_COMUNIDADE_MAPA,
+        },
+    ).all()
+    return [dict(linha._mapping) for linha in linhas]

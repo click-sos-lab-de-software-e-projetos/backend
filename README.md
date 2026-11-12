@@ -1,6 +1,6 @@
 # Click S.O.S — Backend
 
-Base técnica inicial do backend do Click S.O.S. Neste estágio existem o cadastro e login com JWT em `/api/v1/auth` (AUTH-01), a edição do perfil, a troca de senha (Tarefa 7) e a exclusão de conta (Tarefa 10), a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01), o consentimento do contato por link de uso único, a criação do alerta em `POST /api/v1/sos/alertas` (SOS-03), que grava o alerta como `PENDENTE`, e a consulta do status em `GET /api/v1/sos/alertas/{id}`. As tabelas do mapa (`regioes_seguranca` e o schema `interno` com as ocorrências da SSP) já existem, `GET /api/v1/mapa/regioes` devolve os distritos próximos com score e cor, e `POST /api/v1/mapa/regioes/{id}/feedbacks` recebe o feedback da comunidade (veja "Mapa de risco"). Depois da resposta, o alerta é enviado pelo WhatsApp aos contatos aptos, pela Evolution API (SOS-05 e SOS-06).
+Base técnica inicial do backend do Click S.O.S. Neste estágio existem o cadastro e login com JWT em `/api/v1/auth` (AUTH-01), a edição do perfil, a troca de senha (Tarefa 7) e a exclusão de conta (Tarefa 10), a autenticação Bearer (SOS-01), as migrações das tabelas de usuários, contatos, alertas e tentativas (SOS-02) o CRUD de contatos de emergência em `/api/v1/contatos` (CONT-01), o consentimento do contato por link de uso único, a criação do alerta em `POST /api/v1/sos/alertas` (SOS-03), que grava o alerta como `PENDENTE`, e a consulta do status em `GET /api/v1/sos/alertas/{id}`. As tabelas do mapa (`regioes_seguranca` e o schema `interno` com as ocorrências da SSP) já existem, `GET /api/v1/mapa/regioes` devolve os distritos próximos com score e cor, e `/api/v1/mapa/alertas` recebe e lista os alertas da comunidade no mapa (veja "Mapa de risco"). Depois da resposta, o alerta é enviado pelo WhatsApp aos contatos aptos, pela Evolution API (SOS-05 e SOS-06).
 
 ## Requisitos
 
@@ -178,7 +178,7 @@ O score vai de 0 a 100: soma dos pesos das ocorrências dos 6 meses anteriores �
 
 O app consulta `GET /api/v1/mapa/regioes?latitude=...&longitude=...&raio=3000` (MAP-06/07); a rota é pública, então o mapa aparece mesmo sem login. A resposta lista no máximo 50 distritos com a borda a até `raio` metros do ponto, do mais próximo ao mais distante, cada um com `id` público, `nome`, `centroide`, `score`, `cor_hex` e `raio_metros`. O raio padrão é 3000 m e o máximo, 10000 m; fora disso, `422`.
 
-Para relatar algo sobre um distrito, o app envia `POST /api/v1/mapa/regioes/{id}/feedbacks` com o token e o corpo `{"categoria": "ILUMINACAO", "texto": "..."}` (MAP-04), em que `{id}` é o `id` público devolvido por `/mapa/regioes`. As categorias são `ILUMINACAO`, `ASSALTO`, `ASSEDIO`, `MOVIMENTO`, `POLICIAMENTO` e `OUTRO`. O texto é opcional, tem até 500 caracteres e é obrigatório em `OUTRO`. O feedback é gravado como `PENDENTE` em `feedbacks_comunidade` e responde `201`; distrito desconhecido responde `404`. O feedback não altera o score, a cor nem a resposta de `/mapa/regioes` (Regra 05).
+Alertas da comunidade, como no Waze: o app envia `POST /api/v1/mapa/alertas` com o token e o corpo `{"categoria": "ILUMINACAO", "texto": "...", "latitude": -23.55, "longitude": -46.63}`, com a posição do GPS. As categorias são `ILUMINACAO`, `ASSALTO`, `ASSEDIO`, `MOVIMENTO`, `POLICIAMENTO` e `OUTRO`. O texto é opcional, tem até 500 caracteres e é obrigatório em `OUTRO`. Responde `201` com o alerta. `GET /api/v1/mapa/alertas?latitude=...&longitude=...&raio=3000` é pública e lista, do mais novo ao mais antigo, até 200 alertas das últimas 24 horas dentro do raio, sem dizer quem criou. Os alertas ficam em `alertas_comunidade` e não alteram o score, a cor nem `/mapa/regioes` (Regra 05). A revisão `0012` trocou o antigo feedback por distrito (`feedbacks_comunidade`) por essa tabela.
 
 ## Retenção e privacidade
 
@@ -189,7 +189,7 @@ python scripts/anonimizar_alertas.py
 python scripts/anonimizar_alertas.py --gravar
 ```
 
-`DELETE /api/v1/auth/me` com o token e o corpo `{"senha": "..."}` exclui a conta e responde `204`: apaga a pessoa, os contatos e os feedbacks, e anonimiza na hora os alertas, que ficam sem dono. Senha errada responde `400`; com um alerta ainda `PENDENTE`, `409` (espere o envio terminar). O `downgrade` da revisão `0010` apaga os alertas anonimizados ou sem dono, porque as colunas voltam a ser obrigatórias.
+`DELETE /api/v1/auth/me` com o token e o corpo `{"senha": "..."}` exclui a conta e responde `204`: apaga a pessoa, os contatos e os alertas que ela marcou no mapa, e anonimiza na hora os alertas de S.O.S, que ficam sem dono. Senha errada responde `400`; com um alerta ainda `PENDENTE`, `409` (espere o envio terminar). O `downgrade` da revisão `0010` apaga os alertas anonimizados ou sem dono, porque as colunas voltam a ser obrigatórias.
 
 ## Testes e pre-commit
 
@@ -229,7 +229,7 @@ alembic upgrade head --sql  # mostra o SQL sem executar
 alembic check               # confirma que os modelos em src/app/db/models.py batem com as migrações
 ```
 
-As revisões `0006` e `0007` (schema `interno` e `regioes_seguranca`) foram aplicadas no Neon antes de estarem no Git e depois reescritas a partir do schema real. No Neon, `alembic upgrade head` parte da `0007` e aplica a `0008`, a `0009` (`feedbacks_comunidade`), a `0010` (alertas anonimizados) e a `0011` (`usuarios.mensagem_sos`); não rode `downgrade` lá.
+As revisões `0006` e `0007` (schema `interno` e `regioes_seguranca`) foram aplicadas no Neon antes de estarem no Git e depois reescritas a partir do schema real. No Neon, `alembic upgrade head` parte da `0007` e aplica a `0008`, a `0009` (`feedbacks_comunidade`), a `0010` (alertas anonimizados), a `0011` (`usuarios.mensagem_sos`) e a `0012` (`alertas_comunidade` no lugar de `feedbacks_comunidade`); não rode `downgrade` lá.
 
 ## Variáveis de ambiente
 

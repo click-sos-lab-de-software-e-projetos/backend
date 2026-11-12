@@ -153,7 +153,7 @@ def trocar_senha(dados: TrocarSenhaRequisicao, usuario_id: UsuarioId, sessao: Se
     response_class=Response,
     summary="Excluir minha conta",
     description=(
-        "Exige a senha. Apaga a pessoa, os contatos e os feedbacks. Os alertas ficam "
+        "Exige a senha. Apaga a pessoa, os contatos e os alertas que ela marcou no mapa. Os alertas de S.O.S ficam "
         "anonimizados, sem dono, coordenadas nem mensagem, só para estatística. "
         "Não dá para desfazer."
     ),

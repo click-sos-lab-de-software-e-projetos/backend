@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
 
-from app.constants import LIMITE_TEXTO_FEEDBACK
+from app.constants import LIMITE_TEXTO_ALERTA_COMUNIDADE
 
 
 class Centroide(BaseModel):
@@ -23,18 +23,24 @@ class RegiaoResposta(BaseModel):
     raio_metros: int
 
 
-CategoriaFeedback = Literal["ILUMINACAO", "ASSALTO", "ASSEDIO", "MOVIMENTO", "POLICIAMENTO", "OUTRO"]
-TextoFeedback = Annotated[str, StringConstraints(strip_whitespace=True, max_length=LIMITE_TEXTO_FEEDBACK)]
+CategoriaAlerta = Literal["ILUMINACAO", "ASSALTO", "ASSEDIO", "MOVIMENTO", "POLICIAMENTO", "OUTRO"]
+TextoAlerta = Annotated[str, StringConstraints(strip_whitespace=True, max_length=LIMITE_TEXTO_ALERTA_COMUNIDADE)]
 
 
-class CriarFeedbackRequisicao(BaseModel):
+class CriarAlertaComunidadeRequisicao(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
-        json_schema_extra={"examples": [{"categoria": "ILUMINACAO", "texto": "Rua sem iluminação à noite"}]},
+        json_schema_extra={
+            "examples": [
+                {"categoria": "ILUMINACAO", "texto": "Rua sem iluminação", "latitude": -23.55, "longitude": -46.63}
+            ]
+        },
     )
 
-    categoria: CategoriaFeedback
-    texto: TextoFeedback | None = Field(default=None, description="Opcional, exceto na categoria OUTRO.")
+    categoria: CategoriaAlerta
+    texto: TextoAlerta | None = Field(default=None, description="Opcional, exceto na categoria OUTRO.")
+    latitude: float = Field(ge=-90, le=90, allow_inf_nan=False)
+    longitude: float = Field(ge=-180, le=180, allow_inf_nan=False)
 
     @field_validator("texto")
     @classmethod
@@ -48,11 +54,12 @@ class CriarFeedbackRequisicao(BaseModel):
         return self
 
 
-class FeedbackCriadoResposta(BaseModel):
-    """Confirma o envio. Não devolve o texto nem quem enviou."""
+class AlertaComunidadeResposta(BaseModel):
+    """O que o mapa mostra. Nunca quem criou o alerta."""
 
     id: UUID
-    regiao_id: str
-    categoria: CategoriaFeedback
-    status: Literal["PENDENTE"]
+    categoria: CategoriaAlerta
+    texto: str | None
+    latitude: float
+    longitude: float
     criado_em: datetime

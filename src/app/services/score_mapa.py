@@ -1,8 +1,8 @@
 """Score de risco dos distritos (MAP-05). Funções puras, sem banco.
 
 Densidade = soma dos pesos das ocorrências ÷ área em km². O distrito mais
-denso vale 100 e os demais são proporcionais a ele. Feedback comunitário
-tem peso zero (Regra 05), então não entra aqui.
+denso vale 100 e os demais são proporcionais a ele. Alertas da comunidade
+têm peso zero (Regra 05), então não entra aqui.
 """
 
 import math

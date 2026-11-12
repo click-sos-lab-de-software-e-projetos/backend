@@ -92,7 +92,7 @@ def trocar_senha(sessao: Session, usuario_id: UUID, senha_atual: str, senha_nova
 
 
 def excluir_conta(sessao: Session, usuario_id: UUID, senha: str) -> None:
-    """Apaga a pessoa; contatos e feedbacks caem por CASCADE e os alertas ficam anonimizados, sem dono."""
+    """Apaga a pessoa; contatos e alertas do mapa caem por CASCADE; os de S.O.S ficam anonimizados, sem dono."""
     # FOR UPDATE: um alerta criado durante a exclusão espera, e depois falha pela FK.
     usuario = sessao.scalar(select(Usuario).where(Usuario.id == usuario_id).with_for_update())
     if usuario is None:
