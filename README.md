@@ -180,6 +180,16 @@ O app consulta `GET /api/v1/mapa/regioes?latitude=...&longitude=...&raio=3000` (
 
 Alertas da comunidade, como no Waze: o app envia `POST /api/v1/mapa/alertas` com o token e o corpo `{"categoria": "ILUMINACAO", "texto": "...", "latitude": -23.55, "longitude": -46.63}`, com a posição do GPS. As categorias são `ILUMINACAO`, `ASSALTO`, `ASSEDIO`, `MOVIMENTO`, `POLICIAMENTO` e `OUTRO`. O texto é opcional, tem até 500 caracteres e é obrigatório em `OUTRO`. Responde `201` com o alerta. `GET /api/v1/mapa/alertas?latitude=...&longitude=...&raio=3000` é pública e lista, do mais novo ao mais antigo, até 200 alertas das últimas 24 horas dentro do raio, sem dizer quem criou. Os alertas ficam em `alertas_comunidade` e não alteram o score, a cor nem `/mapa/regioes` (Regra 05). A revisão `0012` trocou o antigo feedback por distrito (`feedbacks_comunidade`) por essa tabela.
 
+Para demonstrar, `scripts/popular_alertas_liberdade.py` cria alertas em pontos sorteados dentro do distrito da Liberdade, com categorias e textos variados e idades espalhadas nas últimas 23 horas. Eles ficam numa conta fixa de demonstração (`alertas-demo@clicksos.invalid`, sem senha). Sem `--gravar`, só simula:
+
+```bash
+scripts/run.sh shell dev                                               # ou prod, para ver no app do Render
+python scripts/popular_alertas_liberdade.py                            # 20 alertas, só o resumo
+python scripts/popular_alertas_liberdade.py --quantidade 30 --limpar --gravar
+```
+
+`--limpar` apaga antes os alertas anteriores da conta de demonstração, `--distrito` troca o distrito e `--semente` muda os pontos sorteados. Como os alertas valem 24 horas, rode de novo para a demonstração do dia seguinte.
+
 ## Retenção e privacidade
 
 Alertas e localização ficam guardados por 180 dias (Regra 08, YUME-03). Depois disso, o alerta é anonimizado: as coordenadas, a mensagem e o vínculo das tentativas com os contatos são apagados, e o status, as tentativas e as datas ficam para estatística. A anonimização é um script manual, sem agendamento no MVP; sem `--gravar`, só mostra quantos alertas seriam anonimizados. Rodar de novo não muda os já anonimizados:
